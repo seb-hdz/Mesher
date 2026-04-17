@@ -50,7 +50,3 @@ El transporte actual en simulador usa **`MockBleMeshTransport`** (fan-out en mem
 - [docs/THREAT_MODEL.md](./docs/THREAT_MODEL.md) — seguridad MVP  
 - [docs/crypto-forward-secrecy.md](./docs/crypto-forward-secrecy.md) — evolución cripto  
 - [docs/cursor-skills.md](./docs/cursor-skills.md) — skills recomendadas  
-
-## Licencia
-
-Privado / según definas.
