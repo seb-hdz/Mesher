@@ -1,0 +1,31 @@
+---
+description: Preferir skills de agente a nivel de repositorio Mesher (no global)
+alwaysApply: true
+---
+
+# Agent skills: alcance de proyecto
+
+Para Mesher, las **skills instalables** deben vivir en el **repositorio**, no solo en el perfil del usuario, salvo que el equipo decida explícitamente lo contrario.
+
+## Instalación
+
+- Ejecutar desde la **raíz del monorepo** (`Mesher/`).
+- Usar instalación **por defecto (proyecto)**. **No** uses `-g` / `--global` salvo acuerdo explícito (p. ej. máquina personal sin commitear el repo).
+- Comando típico tras validar en [skills.sh](https://skills.sh/):
+
+  `npx skills add <owner/repo>@<nombre-skill> -y --copy`
+
+- `--copy` evita symlinks frágiles entre máquinas; alinea con el flujo recomendado por la CLI.
+
+## Qué versionar
+
+- Incluir en Git el contenido bajo `.agents/skills/` y el fichero `skills-lock.json` cuando añadas o actualices skills, para que Cursor y el resto del equipo vean las mismas capacidades.
+- La skill local de descubrimiento sigue en `.agents/skills/find-skills/`; para buscar nuevas skills, seguir [docs/cursor-skills.md](docs/cursor-skills.md) y `.agents/skills/find-skills/SKILL.md`.
+
+## Resumen
+
+| Preferido | Evitar por defecto |
+|-----------|-------------------|
+| `npx skills add …` (sin `-g`) desde la raíz del repo | `npx skills add … -g` sin decisión explícita del equipo |
+
+Las reglas de arquitectura del producto (hexagonal, puertos en dominio, etc.) siguen en la documentación del repo; las skills solo guían al agente sobre patrones y convenciones.

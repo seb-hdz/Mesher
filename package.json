@@ -1,0 +1,11 @@
+{
+  "name": "mesher",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --filter @mesher/domain build && pnpm --filter @mesher/application build",
+    "test": "pnpm --filter @mesher/domain test && pnpm --filter @mesher/application test",
+    "lint": "pnpm -r run lint",
+    "mobile": "pnpm --filter mobile start"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

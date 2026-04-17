@@ -1,0 +1,20 @@
+---
+description: Depurar integraciones nativas Expo/RN emitiendo eventos de device y suscripción en entrada JS (patón MesherNativeLog).
+globs:
+  - packages/mobile/**
+  - packages/mobile/plugins/**/*
+alwaysApply: false
+---
+
+# Debug: integraciones nativas vía logs en Metro
+
+Al depurar **Swift/Kotlin** en `packages/mobile` (plugins bajo `packages/mobile/plugins/`, p. ej. `mesher-ble-native`), priorizar el patrón documentado en [docs/expo-native-debug-log.md](../../docs/expo-native-debug-log.md):
+
+1. **Nativo:** emitir un evento de device con payload serializable (p. ej. `level` + `message`). En iOS, incluir el nombre en `supportedEvents()` del `RCTEventEmitter`; en Android, `RCTDeviceEventEmitter.emit` y módulo con `addListener`/`removeListeners` si aplica.
+2. **JS:** suscripción **única** lo antes posible en el bundle — en Mesher, [packages/mobile/index.ts](../../packages/mobile/index.ts) vía `installNativeMesherLogBridge()` — para reenviar a `console.*` y alinear con logs TS.
+
+**Referencia concreta en el repo:** evento **`MesherNativeLog`**, helpers `emitNativeLog` en `MesherBleNative.swift` / `MesherBleModule.kt`.
+
+**Recordatorio:** tras cambiar código nativo del plugin, hace falta **rebuild** del dev client; el JS del bridge no reemplaza Xcode/logcat para fallos de bajo nivel.
+
+Coexiste con la política de integración reproducible en [.cursor/rules/expo-native-integration.mdc](./expo-native-integration.mdc).

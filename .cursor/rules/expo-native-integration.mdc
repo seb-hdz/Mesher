@@ -1,0 +1,26 @@
+---
+description: Integración nativa Expo/React Native sin eject — plugins, app config y parches versionados.
+globs:
+  - packages/mobile/**
+alwaysApply: false
+---
+
+# Expo / React Native: integración nativa (Mesher)
+
+Esta política aplica al paquete mobile y a cualquier cambio que toque código nativo (iOS/Android).
+
+## Permitido
+
+- **Expo Config Plugins** (`@expo/config-plugins`, mods idempotentes) para inyectar código nativo, `Info.plist`, `AndroidManifest`, proyecto Xcode/Gradle.
+- **`app.json` / `app.config.*`** como fuente de verdad de plugins, permisos y flags Expo.
+- **`patch-package`** (u homólogo) sobre dependencias cuando el plugin no alcanza, con parche **versionado en Git** y breve nota en el README del paquete o en la descripción del PR.
+
+## Prohibido como flujo habitual
+
+- **`expo eject`** o abandonar el modelo gestionado sin decisión explícita de arquitectura del equipo.
+- Depender de **“corre prebuild y edita `ios/` o `android/` a mano”** como forma rutinaria de añadir features nativas. Los cambios deben ser **reproducibles** vía plugin o parche documentado.
+- Cambios nativos **one-off** sin camino equivalente en CI/EAS.
+
+**Regla en una línea:** no usar eject; todo cambio nativo reproducible vía plugin o parche.
+
+Los artefactos canónicos de Mesher BLE viven bajo `packages/mobile/plugins/mesher-ble-native/` y se aplican con el plugin `./plugins/withMesherBle` en `app.json`.
