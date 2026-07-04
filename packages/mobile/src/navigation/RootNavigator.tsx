@@ -1,6 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { HomeScreen } from "../screens/HomeScreen";
+import { MainTabNavigator } from "./MainTabNavigator";
 import { PairScreen } from "../screens/PairScreen";
 import { ComposeScreen } from "../screens/ComposeScreen";
 import type { RootStackParamList } from "./types";
@@ -12,8 +12,8 @@ export function RootNavigator() {
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen
-          name="Home"
-          component={HomeScreen}
+          name="Main"
+          component={MainTabNavigator}
           options={{ title: "Mesher", headerShown: false }}
         />
         <Stack.Screen

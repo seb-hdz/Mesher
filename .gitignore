@@ -13,3 +13,5 @@ web-build/
 coverage/
 .turbo
 
+packages/mobile/android/
+packages/mobile/ios/

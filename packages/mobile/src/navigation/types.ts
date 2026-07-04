@@ -1,5 +1,27 @@
+import type { NavigatorScreenParams } from "@react-navigation/native";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import type { CompositeScreenProps } from "@react-navigation/native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+
+export type MainTabParamList = {
+  Nearby: undefined;
+  Messages: undefined;
+  Contacts: undefined;
+  Settings: undefined;
+};
+
 export type RootStackParamList = {
-  Home: undefined;
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Pair: undefined;
   Compose: undefined;
 };
+
+export type HomeScreenProps = CompositeScreenProps<
+  BottomTabScreenProps<MainTabParamList, "Nearby">,
+  NativeStackScreenProps<RootStackParamList, "Main">
+>;
+
+export type ContactsTabScreenProps = CompositeScreenProps<
+  BottomTabScreenProps<MainTabParamList, "Contacts">,
+  NativeStackScreenProps<RootStackParamList, "Main">
+>;

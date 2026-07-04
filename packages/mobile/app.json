@@ -40,7 +40,7 @@
       },
       "supportsTablet": true,
       "infoPlist": {
-        "NSBluetoothAlwaysUsageDescription": "Mesher uses Bluetooth to discover nearby devices and relay encrypted messages when you use a dev build with BLE enabled.",
+        "NSBluetoothAlwaysUsageDescription": "Mesher uses Bluetooth to discover nearby devices and relay encrypted messages when you use it with BLE enabled.",
         "NSCameraUsageDescription": "Camera is used to scan pairing QR codes.",
         "UIBackgroundModes": ["bluetooth-central", "bluetooth-peripheral"]
       },

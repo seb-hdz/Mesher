@@ -1,3 +1,4 @@
+import "react-native-gesture-handler";
 import "./src/logging/installConsoleCapture";
 import { installNativeMesherLogBridge } from "./src/logging/installNativeMesherLogBridge";
 

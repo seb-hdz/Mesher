@@ -1,0 +1,39 @@
+---
+description: >-
+  Texto visible en mobile (Mesher): copiar en packages/mobile/languages y leer
+  con useL / rutas con puntos; no hardcodear strings de UI en componentes.
+globs:
+  - packages/mobile/**/*.tsx
+  - packages/mobile/languages/**/*.ts
+alwaysApply: false
+---
+
+# i18n en `packages/mobile` (useL)
+
+## Regla
+
+- **Todo texto que vea el usuario** (títulos, etiquetas, placeholders, hints, botones, diálogos, toasts, `accessibilityLabel`/`accessibilityHint` cuando describan contenido) debe vivir en **`packages/mobile/languages/es.ts`** y **`en.ts`** (misma forma de árbol en ambos) y mostrarse con **`useL()`** desde `packages/mobile/languages/language.store.ts`.
+- Usar **rutas con puntos** hasta la hoja string, p. ej. `l("USER_CONFIG.TITLE")`, `l("ERRORS.SERVER.GENERIC")`. El tipo `LanguagePath` se infiere de los diccionarios; mantener **es/en alineados**.
+
+## En componentes
+
+```tsx
+import { useL } from "../../../languages/language.store";
+
+const l = useL();
+// …
+<Text>{l("SECCION.CLAVE")}</Text>
+```
+
+Importar `useL` con la ruta relativa correcta desde el fichero (p. ej. hacia `packages/mobile/languages/language.store.ts`), igual que en el resto del paquete mobile.
+
+## Excepciones (no i18n obligatorio aquí)
+
+- Literales de **estilo y layout**: `className`, nombres de ícono, tokens de diseño.
+- **Código / sistema**: imports, rutas de fichero, URLs técnicas, claves de store, `testID` opacos, mensajes solo para `__DEV__` / depuración interna.
+- **Números y formatos** derivados de datos; si el **formato** incluye palabras fijas (p. ej. “hace 5 minutos”), esas partes sí van al diccionario.
+
+## Al añadir o cambiar copy
+
+1. Añadir o actualizar la clave en **`es.ts`** y **`en.ts`**.
+2. Consumir con **`useL()`** en el `.tsx`; no dejar el string suelto en JSX salvo en las excepciones anteriores.

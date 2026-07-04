@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "nativewind";
 import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { DebugLogFloatingOverlay } from "./src/logging/DebugLogFloatingOverlay";
@@ -21,14 +22,16 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={NAV_THEME[scheme]}>
-        <IncomingMessageBanner />
-        <RootNavigator />
-        <DebugLogFloatingOverlay />
-        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-        <PortalHost />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider value={NAV_THEME[scheme]}>
+          <IncomingMessageBanner />
+          <RootNavigator />
+          <DebugLogFloatingOverlay />
+          <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+          <PortalHost />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
