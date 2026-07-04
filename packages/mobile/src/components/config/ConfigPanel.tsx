@@ -1,8 +1,9 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Settings } from "lucide-react-native";
+import { Text } from "@/components/ui/text";
 import { UserConfig } from "./UserConfig";
 import { NetworkConfig } from "./NetworkConfig";
-import { Settings } from "lucide-react-native";
 import { useIconColors } from "@/src/ui/iconColors";
 import Logo from "../Logo";
 
