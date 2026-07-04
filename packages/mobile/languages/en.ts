@@ -22,11 +22,15 @@ export const en = {
     TITLE: "Inbox",
     EMPTY: "No messages yet.",
     ROW_EMPTY_BODY: "(Empty)",
+    A11Y_COLLAPSE: "Collapse inbox",
+    A11Y_EXPAND: "Expand inbox",
   },
   OUTBOX: {
     TITLE: "Outbox",
     EMPTY: "No outbound messages yet.",
     TIME_YESTERDAY: "Yesterday",
+    A11Y_COLLAPSE: "Collapse outbox",
+    A11Y_EXPAND: "Expand outbox",
     STATUS: {
       PENDING: "Pending",
       SENT: "Sent",

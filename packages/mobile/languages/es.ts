@@ -22,11 +22,15 @@ export const es = {
     TITLE: "Bandeja de entrada",
     EMPTY: "Aún no hay mensajes.",
     ROW_EMPTY_BODY: "(Vacío)",
+    A11Y_COLLAPSE: "Contraer bandeja de entrada",
+    A11Y_EXPAND: "Expandir bandeja de entrada",
   },
   OUTBOX: {
     TITLE: "Mensajes",
     EMPTY: "Aún no hay mensajes enviados.",
     TIME_YESTERDAY: "Ayer",
+    A11Y_COLLAPSE: "Contraer mensajes enviados",
+    A11Y_EXPAND: "Expandir mensajes enviados",
     STATUS: {
       PENDING: "Pendiente",
       SENT: "Enviado",

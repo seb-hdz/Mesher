@@ -11,6 +11,15 @@ export type OutboundRowUi = {
   status: OutboundRecord["status"];
   createdAtMs: number;
   toDisplayName: string;
+  toPeerId: string | null;
+};
+
+export type InboxRowUi = {
+  messageId: string;
+  body: string;
+  senderDisplayName: string;
+  senderPeerId: string | null;
+  receivedAtMs: number;
 };
 
 function boxKeyEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -27,7 +36,8 @@ async function buildOutboundRows(rt: MeshRuntime, peers: PeerRecord[]): Promise<
       messageId: r.messageId,
       status: r.status,
       createdAtMs: r.createdAtMs,
-      toDisplayName: peer?.displayName ?? "unknown contact",
+      toDisplayName: peer?.displayName ?? "",
+      toPeerId: peer?.id ?? null,
     };
   });
 }
@@ -41,7 +51,7 @@ type MeshUiState = {
   displayNameLoaded: boolean;
   backgroundRelayEnabled: boolean;
   peers: PeerRecord[];
-  inbox: string[];
+  inbox: InboxRowUi[];
   outbound: OutboundRowUi[];
   neighborCount: number;
   lastGossipSent: number | null;
@@ -84,8 +94,19 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
       } catch {
         /* ignore */
       }
-      await initMeshRuntime((text) => {
-        set((s) => ({ inbox: [text, ...s.inbox] }));
+      await initMeshRuntime((message) => {
+        set((s) => ({
+          inbox: [
+            {
+              messageId: message.messageId,
+              body: message.plaintext,
+              senderDisplayName: message.senderDisplayName,
+              senderPeerId: message.senderPeerId,
+              receivedAtMs: Date.now(),
+            },
+            ...s.inbox,
+          ],
+        }));
       });
       const rt = getMeshRuntime();
       if (bgRelay && Platform.OS === "android") {

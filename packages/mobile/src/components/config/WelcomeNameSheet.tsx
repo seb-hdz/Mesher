@@ -1,5 +1,12 @@
-import { useState } from "react";
-import { Modal, Platform, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  type TextInput,
+  View,
+} from "react-native";
 import { User } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
@@ -19,9 +26,19 @@ export function WelcomeNameSheet() {
   const saveDisplayName = useMeshStore((s) => s.saveDisplayName);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   const visible = ready && displayNameLoaded && displayName === "";
   const canSave = draft.trim().length > 0 && !saving;
+
+  useEffect(() => {
+    if (!visible) {
+      setDraft("");
+      return;
+    }
+    const id = setTimeout(() => inputRef.current?.focus(), 400);
+    return () => clearTimeout(id);
+  }, [visible]);
 
   const onSave = async () => {
     if (!canSave) return;
@@ -41,43 +58,59 @@ export function WelcomeNameSheet() {
       presentationStyle={Platform.OS === "ios" ? "overFullScreen" : undefined}
       onRequestClose={() => {}}
     >
-      <View className="flex-1 justify-end bg-black/50">
-        <View
-          className="bg-card rounded-t-2xl px-6 pt-6"
-          style={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}
+      <View style={styles.backdrop}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.keyboardAvoid}
         >
-          <Text className="text-center text-2xl font-bold">
-            {l("WELCOME_NAME.TITLE")}
-          </Text>
-          <Text variant="muted" className="mt-2 text-center text-sm">
-            {l("WELCOME_NAME.SUBTITLE")}
-          </Text>
-
-          <View className="dark:bg-input/30 border-input bg-background mt-6 flex h-11 w-full flex-row items-center rounded-md border px-2 shadow-sm shadow-black/5">
-            <User color={icon.muted} size={18} />
-            <Input
-              className="min-w-0 flex-1 border-0 bg-transparent px-2 py-1 shadow-none"
-              placeholder={l("USER_CONFIG.NAME_PLACEHOLDER")}
-              value={draft}
-              onChangeText={setDraft}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={() => void onSave()}
-            />
-          </View>
-          <Text variant="muted" className="mt-2 text-xs opacity-50">
-            {l("USER_CONFIG.NAME_HINT")}
-          </Text>
-
-          <Button
-            className="mt-6"
-            disabled={!canSave}
-            onPress={() => void onSave()}
+          <View
+            className="bg-card rounded-t-2xl px-6 pt-6"
+            style={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }}
           >
-            <Text>{l("WELCOME_NAME.SAVE")}</Text>
-          </Button>
-        </View>
+            <Text className="text-center text-2xl font-bold">
+              {l("WELCOME_NAME.TITLE")}
+            </Text>
+            <Text variant="muted" className="mt-2 text-center text-sm">
+              {l("WELCOME_NAME.SUBTITLE")}
+            </Text>
+
+            <View className="dark:bg-input/30 border-input bg-background mt-6 flex h-11 w-full flex-row items-center rounded-md border px-2 shadow-sm shadow-black/5">
+              <User color={icon.muted} size={18} />
+              <Input
+                ref={inputRef}
+                className="min-w-0 flex-1 border-0 bg-transparent px-2 py-1 shadow-none"
+                placeholder={l("USER_CONFIG.NAME_PLACEHOLDER")}
+                value={draft}
+                onChangeText={setDraft}
+                returnKeyType="done"
+                onSubmitEditing={() => void onSave()}
+              />
+            </View>
+            <Text variant="muted" className="mt-2 text-xs opacity-50">
+              {l("USER_CONFIG.NAME_HINT")}
+            </Text>
+
+            <Button
+              className="mt-6"
+              disabled={!canSave}
+              onPress={() => void onSave()}
+            >
+              <Text>{l("WELCOME_NAME.SAVE")}</Text>
+            </Button>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  keyboardAvoid: {
+    justifyContent: "flex-end",
+  },
+});

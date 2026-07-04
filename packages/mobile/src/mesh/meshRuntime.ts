@@ -7,6 +7,7 @@ import {
   parsePairQrPayloadFromJson,
   purgeExpired,
   runGossipRound,
+  type DeliveredIncomingMessage,
   type PairQrPayloadV1,
 } from "@mesher/application";
 import { loadOrCreateIdentity, type DeviceIdentity } from "../identity/secureIdentity";
@@ -52,7 +53,9 @@ export function getMeshRuntime(): MeshRuntime {
   return instance;
 }
 
-export async function initMeshRuntime(onDelivered: (text: string) => void): Promise<MeshRuntime> {
+export async function initMeshRuntime(
+  onDelivered: (message: DeliveredIncomingMessage) => void
+): Promise<MeshRuntime> {
   if (instance) {
     console.log("[mesher:init] early-return (already initialized)");
     return instance;
@@ -103,7 +106,7 @@ export async function initMeshRuntime(onDelivered: (text: string) => void): Prom
       );
     }
     if (r.kind === "delivered") {
-      onDelivered(r.plaintext);
+      onDelivered(r.message);
     }
   };
 

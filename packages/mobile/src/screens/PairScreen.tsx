@@ -17,6 +17,7 @@ import { Text } from "@/components/ui/text";
 import { useL } from "../../languages/language.store";
 import type { RootStackParamList } from "../navigation/types";
 import { useMeshStore } from "../state/meshStore";
+import { FloatingBackButton } from "../ui/FloatingBackButton";
 import { useIconColors } from "../ui/iconColors";
 import { ScreenContainer } from "../ui/ScreenContainer";
 
@@ -71,6 +72,8 @@ export function PairScreen({ navigation }: Props) {
 
   return (
     <ScreenContainer>
+      <FloatingBackButton />
+
       <ScrollView
         contentContainerClassName="items-center pb-6"
         showsVerticalScrollIndicator={false}
@@ -167,30 +170,23 @@ export function PairScreen({ navigation }: Props) {
             onBarcodeScanned={onBarcode}
             onMountError={({ message }) => setCameraError(message)}
           />
-          <View
-            style={[
-              styles.scannerChrome,
-              {
-                paddingTop: Math.max(insets.top, 12) + 8,
-                paddingBottom: insets.bottom + 12,
-              },
-            ]}
-            pointerEvents="box-none"
-          >
-            <Button
-              variant="secondary"
-              className="self-start"
-              onPress={stopScanning}
+          <FloatingBackButton onPress={stopScanning} />
+          {cameraError ? (
+            <View
+              style={[
+                styles.scannerChrome,
+                {
+                  paddingTop: Math.max(insets.top, 12) + 56,
+                  paddingBottom: insets.bottom + 12,
+                },
+              ]}
+              pointerEvents="box-none"
             >
-              <X color={icon.onSecondary} size={18} />
-              <Text>Cancel</Text>
-            </Button>
-            {cameraError ? (
-              <Text className="text-destructive mt-3 max-w-full text-sm">
+              <Text className="text-destructive max-w-full text-sm">
                 {cameraError}
               </Text>
-            ) : null}
-          </View>
+            </View>
+          ) : null}
         </View>
       </Modal>
     </ScreenContainer>

@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { FlatList, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ChevronLeft, MessageSquare, Send, User, Users } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useL } from "../../languages/language.store";
+import { MessageSquare, Send, User, Users } from "lucide-react-native";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,43 +14,33 @@ import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import type { RootStackParamList } from "../navigation/types";
 import { useMeshStore } from "../state/meshStore";
+import { FloatingBackButton } from "../ui/FloatingBackButton";
 import { useIconColors } from "../ui/iconColors";
 import { ScreenContainer } from "../ui/ScreenContainer";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Compose">;
 
-export function ComposeScreen({ navigation }: Props) {
-  const l = useL();
-  const insets = useSafeAreaInsets();
+export function ComposeScreen({ navigation, route }: Props) {
+  const initialPeerId = route.params?.peerId;
   const peers = useMeshStore((s) => s.peers);
   const sendMessage = useMeshStore((s) => s.sendMessage);
-  const [peerId, setPeerId] = useState(peers[0]?.id ?? "");
+  const [peerId, setPeerId] = useState(initialPeerId ?? peers[0]?.id ?? "");
   const [body, setBody] = useState("");
 
   useEffect(() => {
+    if (initialPeerId) {
+      setPeerId(initialPeerId);
+      return;
+    }
     if (!peerId && peers[0]) setPeerId(peers[0].id);
-  }, [peers, peerId]);
+  }, [peers, peerId, initialPeerId]);
 
   const canSend = Boolean(peerId && body.trim());
   const icon = useIconColors();
 
   return (
     <ScreenContainer>
-      <View
-        className="absolute left-4 z-10"
-        style={{ top: insets.top + 8 }}
-        pointerEvents="box-none"
-      >
-        <Button
-          variant="outline"
-          size="icon"
-          accessibilityLabel={l("COMMON.BACK")}
-          onPress={() => navigation.goBack()}
-          className="h-11 w-11 rounded-full border-border shadow-sm shadow-black/10"
-        >
-          <ChevronLeft color={icon.foreground} size={24} strokeWidth={2} />
-        </Button>
-      </View>
+      <FloatingBackButton />
 
       <View className="mb-4 flex-row items-center gap-2">
         <MessageSquare color={icon.foreground} size={24} />

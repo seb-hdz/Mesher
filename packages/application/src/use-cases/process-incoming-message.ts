@@ -18,10 +18,17 @@ export type LocalIdentity = {
   boxSecretKey: Uint8Array;
 };
 
+export type DeliveredIncomingMessage = {
+  plaintext: string;
+  messageId: string;
+  senderDisplayName: string;
+  senderPeerId: string | null;
+};
+
 export type ProcessIncomingResult =
   | { kind: "ignored" }
   | { kind: "assembled_invalid" }
-  | { kind: "delivered"; plaintext: string; messageId: string }
+  | { kind: "delivered"; message: DeliveredIncomingMessage }
   | { kind: "relayed"; messageId: string };
 
 export function createIncomingHandler(deps: AppDeps, identity: LocalIdentity) {
@@ -84,7 +91,15 @@ export function createIncomingHandler(deps: AppDeps, identity: LocalIdentity) {
         console.log(
           `[mesher:rx] delivered messageId=${packet.messageId} plaintextLen=${plaintext.length}`
         );
-        return { kind: "delivered", plaintext, messageId: packet.messageId };
+        return {
+          kind: "delivered",
+          message: {
+            plaintext,
+            messageId: packet.messageId,
+            senderDisplayName: trimmedName ?? "",
+            senderPeerId: senderPeer?.id ?? null,
+          },
+        };
       } catch {
         console.log(
           `[mesher:rx] assembled_invalid reason=decrypt messageId=${packet.messageId}`

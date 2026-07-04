@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   createBottomTabNavigator,
   type BottomTabBarButtonProps,
@@ -6,7 +6,8 @@ import {
 import { PlatformPressable } from "@react-navigation/elements";
 import { BlurView } from "expo-blur";
 import { MessageSquare, Radar, Settings, Users } from "lucide-react-native";
-import { Platform, ScrollView, StyleSheet, useColorScheme } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Platform, ScrollView, StyleSheet, useColorScheme, View } from "react-native";
 import { screenBackgroundForScheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useL } from "../../languages/language.store";
@@ -19,7 +20,7 @@ import { HomeScreen } from "../screens/HomeScreen";
 import { ScreenContainer } from "../ui/ScreenContainer";
 import { useMeshStore } from "../state/meshStore";
 import { useIconColors } from "../ui/iconColors";
-import type { MainTabParamList } from "./types";
+import type { ContactsTabScreenProps, MainTabParamList } from "./types";
 import { withTabEntrance } from "./TabScreenEntrance";
 import {
   FLOATING_TAB_BAR_ABOVE_HOME,
@@ -63,25 +64,47 @@ function MessagesTabScreen() {
   const inbox = useMeshStore((s) => s.inbox);
   const outbound = useMeshStore((s) => s.outbound);
   const bottomPad = useFloatingTabBarBottomInset();
+  const [outboxExpanded, setOutboxExpanded] = useState(true);
+  const [inboxExpanded, setInboxExpanded] = useState(true);
+
+  const outboxStyle = outboxExpanded ? { flex: 1 as const, minHeight: 0 } : undefined;
+  const inboxStyle = inboxExpanded ? { flex: 1 as const, minHeight: 0 } : undefined;
 
   return (
-    <ScreenContainer>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: bottomPad }}
-      >
-        <Outbox outbound={outbound} />
-        <Separator className="mb-4" />
-        <Inbox messages={inbox} />
-      </ScrollView>
+    <ScreenContainer className="pb-0">
+      <View className="flex-1" style={{ paddingBottom: bottomPad }}>
+        <View className="min-h-0" style={outboxStyle}>
+          <Outbox
+            outbound={outbound}
+            expanded={outboxExpanded}
+            onToggle={() => setOutboxExpanded((v) => !v)}
+          />
+        </View>
+        {outboxExpanded && inboxExpanded ? (
+          <Separator className="my-3" />
+        ) : null}
+        <View className="min-h-0" style={inboxStyle}>
+          <Inbox
+            messages={inbox}
+            expanded={inboxExpanded}
+            onToggle={() => setInboxExpanded((v) => !v)}
+          />
+        </View>
+      </View>
     </ScreenContainer>
   );
 }
 
 function ContactsTabScreen() {
+  const navigation = useNavigation<ContactsTabScreenProps["navigation"]>();
+
   return (
     <ScreenContainer className="pb-0">
-      <Contacts />
+      <Contacts
+        onPeerPress={(peer) =>
+          navigation.navigate("Compose", { peerId: peer.id })
+        }
+      />
     </ScreenContainer>
   );
 }
