@@ -45,5 +45,15 @@ export const es = {
     TITLE: "Información personal",
     NAME_PLACEHOLDER: "Nombre",
     NAME_HINT: "Los mensajes que envíes llevarán este nombre",
+    SAVE: "Guardar",
+    NAME_SAVED: "Nombre guardado",
+  },
+  WELCOME_NAME: {
+    TITLE: "Bienvenido a Mesher",
+    SUBTITLE: "¿Cómo te llamas? Este nombre aparecerá en los mensajes que envíes.",
+    SAVE: "Guardar",
+  },
+  PAIR: {
+    ADDED_AS_NAME: 'Se te agregará con el nombre de "{name}".',
   },
 } as const;

@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootNavigator } from "./src/navigation/RootNavigator";
+import { WelcomeNameSheet } from "./src/components/config/WelcomeNameSheet";
 import { DebugLogFloatingOverlay } from "./src/logging/DebugLogFloatingOverlay";
 import { IncomingMessageBanner } from "./src/ui/IncomingMessageBanner";
 import { NAV_THEME } from "@/lib/theme";
@@ -27,6 +28,7 @@ export default function App() {
         <ThemeProvider value={NAV_THEME[scheme]}>
           <IncomingMessageBanner />
           <RootNavigator />
+          <WelcomeNameSheet />
           <DebugLogFloatingOverlay />
           <StatusBar style={scheme === "dark" ? "light" : "dark"} />
           <PortalHost />

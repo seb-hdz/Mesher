@@ -33,10 +33,12 @@ async function buildOutboundRows(rt: MeshRuntime, peers: PeerRecord[]): Promise<
 }
 
 const BG_RELAY_SECURE_KEY = "mesher_bg_relay_v1";
+const DISPLAY_NAME_SECURE_KEY = "mesher_display_name_v1";
 
 type MeshUiState = {
   ready: boolean;
   displayName: string;
+  displayNameLoaded: boolean;
   backgroundRelayEnabled: boolean;
   peers: PeerRecord[];
   inbox: string[];
@@ -45,7 +47,7 @@ type MeshUiState = {
   lastGossipSent: number | null;
   error: string | undefined;
   init: () => Promise<void>;
-  setDisplayName: (name: string) => void;
+  saveDisplayName: (name: string) => Promise<void>;
   setBackgroundRelayEnabled: (enabled: boolean) => Promise<void>;
   refreshPeers: () => Promise<void>;
   runGossip: () => Promise<void>;
@@ -56,7 +58,8 @@ type MeshUiState = {
 
 export const useMeshStore = create<MeshUiState>((set, get) => ({
   ready: false,
-  displayName: "Raver",
+  displayName: "",
+  displayNameLoaded: false,
   backgroundRelayEnabled: false,
   peers: [],
   inbox: [],
@@ -69,8 +72,15 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
     try {
       console.log("[mesher:ui] init start");
       let bgRelay = false;
+      let displayName = "";
       try {
         bgRelay = (await SecureStore.getItemAsync(BG_RELAY_SECURE_KEY)) === "1";
+      } catch {
+        /* ignore */
+      }
+      try {
+        const storedName = await SecureStore.getItemAsync(DISPLAY_NAME_SECURE_KEY);
+        if (storedName) displayName = storedName;
       } catch {
         /* ignore */
       }
@@ -95,6 +105,8 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
       );
       set({
         ready: true,
+        displayName,
+        displayNameLoaded: true,
         backgroundRelayEnabled: bgRelay,
         peers,
         outbound,
@@ -108,7 +120,16 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
     }
   },
 
-  setDisplayName: (name: string) => set({ displayName: name }),
+  saveDisplayName: async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    try {
+      await SecureStore.setItemAsync(DISPLAY_NAME_SECURE_KEY, trimmed);
+      set({ displayName: trimmed, error: undefined });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e) });
+    }
+  },
 
   setBackgroundRelayEnabled: async (enabled: boolean) => {
     try {

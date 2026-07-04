@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
+import { useL } from "../../languages/language.store";
 import type { RootStackParamList } from "../navigation/types";
 import { useMeshStore } from "../state/meshStore";
 import { useIconColors } from "../ui/iconColors";
@@ -22,6 +23,7 @@ import { ScreenContainer } from "../ui/ScreenContainer";
 type Props = NativeStackScreenProps<RootStackParamList, "Pair">;
 
 export function PairScreen({ navigation }: Props) {
+  const l = useL();
   const insets = useSafeAreaInsets();
   const displayName = useMeshStore((s) => s.displayName);
   const pairFromScan = useMeshStore((s) => s.pairFromScan);
@@ -98,6 +100,11 @@ export function PairScreen({ navigation }: Props) {
                 <Text variant="muted">Loading QR…</Text>
               )}
             </View>
+            {displayName ? (
+              <Text variant="muted" className="mt-4 text-center text-sm">
+                {l("PAIR.ADDED_AS_NAME").replace("{name}", displayName)}
+              </Text>
+            ) : null}
             <Text
               variant="muted"
               className="mt-3 font-mono text-[10px] opacity-50"
