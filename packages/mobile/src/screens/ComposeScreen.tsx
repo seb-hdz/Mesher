@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { FlatList, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { MessageSquare, Send, User, Users } from "lucide-react-native";
+import { ChevronLeft, MessageSquare, Send, User, Users } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useL } from "../../languages/language.store";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +22,8 @@ import { ScreenContainer } from "../ui/ScreenContainer";
 type Props = NativeStackScreenProps<RootStackParamList, "Compose">;
 
 export function ComposeScreen({ navigation }: Props) {
+  const l = useL();
+  const insets = useSafeAreaInsets();
   const peers = useMeshStore((s) => s.peers);
   const sendMessage = useMeshStore((s) => s.sendMessage);
   const [peerId, setPeerId] = useState(peers[0]?.id ?? "");
@@ -34,6 +38,22 @@ export function ComposeScreen({ navigation }: Props) {
 
   return (
     <ScreenContainer>
+      <View
+        className="absolute left-4 z-10"
+        style={{ top: insets.top + 8 }}
+        pointerEvents="box-none"
+      >
+        <Button
+          variant="outline"
+          size="icon"
+          accessibilityLabel={l("COMMON.BACK")}
+          onPress={() => navigation.goBack()}
+          className="h-11 w-11 rounded-full border-border shadow-sm shadow-black/10"
+        >
+          <ChevronLeft color={icon.foreground} size={24} strokeWidth={2} />
+        </Button>
+      </View>
+
       <View className="mb-4 flex-row items-center gap-2">
         <MessageSquare color={icon.foreground} size={24} />
         <Text variant="h3">Send mesh message</Text>

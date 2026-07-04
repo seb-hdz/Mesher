@@ -1,4 +1,7 @@
 export const es = {
+  COMMON: {
+    BACK: "Atrás",
+  },
   HOME: {
     TITLE: "Mesher",
     NEARBY_CAPTION: "Cercanos",

@@ -1,4 +1,7 @@
 export const en = {
+  COMMON: {
+    BACK: "Back",
+  },
   HOME: {
     TITLE: "Mesher",
     NEARBY_CAPTION: "Nearby",
