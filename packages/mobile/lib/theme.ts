@@ -55,6 +55,18 @@ export const THEME = {
   },
 };
 
+/** RN StyleSheet-friendly backgrounds (comma hsl), aligned with THEME.background. */
+export const SCREEN_BACKGROUND = {
+  light: "hsl(0, 0%, 100%)",
+  dark: "hsl(0, 0%, 3.9%)",
+} as const;
+
+export function screenBackgroundForScheme(
+  scheme: "light" | "dark" | null | undefined
+): string {
+  return scheme === "dark" ? SCREEN_BACKGROUND.dark : SCREEN_BACKGROUND.light;
+}
+
 export const NAV_THEME: Record<"light" | "dark", Theme> = {
   light: {
     ...DefaultTheme,

@@ -1,6 +1,6 @@
 import { useIsFocused } from "@react-navigation/native";
 import { useEffect, type ComponentType, type ReactNode } from "react";
-import { type StyleProp, type ViewStyle } from "react-native";
+import { View, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -40,9 +40,9 @@ export function TabScreenEntrance({ children, style }: TabScreenEntranceProps) {
   }));
 
   return (
-    <Animated.View style={[{ flex: 1 }, animatedStyle, style]}>
-      {children}
-    </Animated.View>
+    <View className="flex-1 bg-background" style={style}>
+      <Animated.View style={[{ flex: 1 }, animatedStyle]}>{children}</Animated.View>
+    </View>
   );
 }
 

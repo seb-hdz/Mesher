@@ -1,5 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useColorScheme } from "react-native";
+import { screenBackgroundForScheme } from "@/lib/theme";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { PairScreen } from "../screens/PairScreen";
 import { ComposeScreen } from "../screens/ComposeScreen";
@@ -8,9 +10,16 @@ import type { RootStackParamList } from "./types";
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
+  const scheme = useColorScheme();
+  const contentBackground = screenBackgroundForScheme(scheme);
+
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          contentStyle: { backgroundColor: contentBackground },
+        }}
+      >
         <Stack.Screen
           name="Main"
           component={MainTabNavigator}

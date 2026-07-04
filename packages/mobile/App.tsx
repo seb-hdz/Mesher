@@ -12,7 +12,7 @@ import { RootNavigator } from "./src/navigation/RootNavigator";
 import { WelcomeNameSheet } from "./src/components/config/WelcomeNameSheet";
 import { DebugLogFloatingOverlay } from "./src/logging/DebugLogFloatingOverlay";
 import { IncomingMessageBanner } from "./src/ui/IncomingMessageBanner";
-import { NAV_THEME } from "@/lib/theme";
+import { NAV_THEME, screenBackgroundForScheme } from "@/lib/theme";
 
 export default function App() {
   const { colorScheme } = useColorScheme();
@@ -23,7 +23,9 @@ export default function App() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView
+      style={{ flex: 1, backgroundColor: screenBackgroundForScheme(scheme) }}
+    >
       <SafeAreaProvider>
         <ThemeProvider value={NAV_THEME[scheme]}>
           <IncomingMessageBanner />

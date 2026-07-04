@@ -7,6 +7,7 @@ import { PlatformPressable } from "@react-navigation/elements";
 import { BlurView } from "expo-blur";
 import { MessageSquare, Radar, Settings, Users } from "lucide-react-native";
 import { Platform, ScrollView, StyleSheet, useColorScheme } from "react-native";
+import { screenBackgroundForScheme } from "@/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useL } from "../../languages/language.store";
 import ConfigPanel from "../components/config/ConfigPanel";
@@ -123,11 +124,13 @@ export function MainTabNavigator() {
     scheme === "dark" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
   const activeTabPillColor =
     scheme === "dark" ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.07)";
+  const sceneBackground = screenBackgroundForScheme(scheme);
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: sceneBackground },
         tabBarActiveTintColor: activeColor,
         tabBarInactiveTintColor: inactiveColor,
         tabBarActiveBackgroundColor: activeTabPillColor,
