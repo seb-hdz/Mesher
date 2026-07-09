@@ -53,6 +53,8 @@ export async function enqueueOutgoingMessage(
     packet,
     status: "PENDING",
     createdAtMs: now,
+    plaintextUtf8: input.plaintextUtf8,
+    recipientPeerId: input.recipientPeerId,
   });
   await deps.persistence.recordSeenMessage(messageId, packet.ttlExpiresAt);
   console.log(

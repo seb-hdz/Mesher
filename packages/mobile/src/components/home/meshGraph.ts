@@ -78,7 +78,7 @@ export function cubicEdgePathD(
   seed: number,
   nodes: MeshPoint[],
   i: number,
-  j: number,
+  j: number
 ): string {
   const p0 = nodes[i];
   const p1 = nodes[j];
@@ -102,16 +102,43 @@ export function cubicEdgePathD(
   return `M ${x0} ${y0} C ${c1x} ${c1y} ${c2x} ${c2y} ${x1} ${y1}`;
 }
 
+/** Single-control-point arc; swap with `cubicEdgePathD` in `buildMeshGraph`. */
+export function quadEdgePathD(
+  seed: number,
+  nodes: MeshPoint[],
+  i: number,
+  j: number
+): string {
+  const p0 = nodes[i];
+  const p1 = nodes[j];
+  const x0 = p0.x;
+  const y0 = p0.y;
+  const x1 = p1.x;
+  const y1 = p1.y;
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const px = (-dy / len) * 1;
+  const py = (dx / len) * 1;
+  const u = pairOffset01(seed, i, j);
+  const mag = 36 + u * 72;
+  const sign = u > 0.5 ? 1 : -1;
+  const off = sign * mag;
+  const cx = (x0 + x1) * 0.5 + px * off;
+  const cy = (y0 + y1) * 0.5 + py * off;
+  return `M ${x0} ${y0} Q ${cx} ${cy} ${x1} ${y1}`;
+}
+
 export function buildMeshGraph(seed = MESH_SEED): {
   nodes: MeshPoint[];
   edges: MeshEdge[];
 } {
   const nodes = buildNodes(seed, MESH_NODE_COUNT, MESH_WORLD_SIZE);
-  const pairs = buildEdges(nodes, 3);
+  const pairs = buildEdges(nodes, 6);
   const edges: MeshEdge[] = pairs.map(([i, j]) => ({
     i,
     j,
-    pathD: cubicEdgePathD(seed, nodes, i, j),
+    pathD: quadEdgePathD(seed, nodes, i, j), // quadEdgePathD
   }));
   return { nodes, edges };
 }

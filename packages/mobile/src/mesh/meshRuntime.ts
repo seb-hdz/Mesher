@@ -23,6 +23,9 @@ import { createMeshTransport } from "./createMeshTransport";
 import {
   base64ToBytes,
   bytesToBase64,
+  type ConversationPeerActivity,
+  type InboundRecord,
+  type MessagePageOpts,
   type OutboundRecord,
   type PeerRecord,
   type TransportPort,
@@ -40,6 +43,11 @@ export type MeshRuntime = {
   dispose: () => void;
   refreshPeers: () => Promise<PeerRecord[]>;
   listOutboundRecent: (limit: number) => Promise<OutboundRecord[]>;
+  listOutboundByPeer: (peerId: string, opts: MessagePageOpts) => Promise<OutboundRecord[]>;
+  listInboundByPeer: (peerId: string, opts: MessagePageOpts) => Promise<InboundRecord[]>;
+  getLatestOutboundByPeer: (peerId: string) => Promise<OutboundRecord | null>;
+  getLatestInboundByPeer: (peerId: string) => Promise<InboundRecord | null>;
+  listConversationPeerActivity: () => Promise<ConversationPeerActivity[]>;
   runGossip: () => Promise<number>;
   sendToPeer: (peer: PeerRecord, text: string) => Promise<number>;
   pairFromQrJson: (json: string) => Promise<PeerRecord>;
@@ -133,6 +141,11 @@ export async function initMeshRuntime(
     dispose,
     refreshPeers: () => persistence.listPeers(),
     listOutboundRecent: (limit: number) => persistence.listOutboundRecent(limit),
+    listOutboundByPeer: (peerId, opts) => persistence.listOutboundByPeer(peerId, opts),
+    listInboundByPeer: (peerId, opts) => persistence.listInboundByPeer(peerId, opts),
+    getLatestOutboundByPeer: (peerId) => persistence.getLatestOutboundByPeer(peerId),
+    getLatestInboundByPeer: (peerId) => persistence.getLatestInboundByPeer(peerId),
+    listConversationPeerActivity: () => persistence.listConversationPeerActivity(),
     runGossip: async () => (await runGossipRound(deps)).sent,
     sendToPeer: async (peer, text) => {
       await enqueueOutgoingMessage(deps, {

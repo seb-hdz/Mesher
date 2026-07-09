@@ -13,10 +13,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import type { RootStackParamList } from "../navigation/types";
+import { useL } from "../../languages/language.store";
 import { useMeshStore } from "../state/meshStore";
-import { FloatingBackButton } from "../ui/FloatingBackButton";
+import { BackButton } from "../ui/FloatingBackButton";
 import { useIconColors } from "../ui/iconColors";
 import { ScreenContainer } from "../ui/ScreenContainer";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Compose">;
 
@@ -24,8 +26,13 @@ export function ComposeScreen({ navigation, route }: Props) {
   const initialPeerId = route.params?.peerId;
   const peers = useMeshStore((s) => s.peers);
   const sendMessage = useMeshStore((s) => s.sendMessage);
+  const l = useL();
   const [peerId, setPeerId] = useState(initialPeerId ?? peers[0]?.id ?? "");
   const [body, setBody] = useState("");
+
+  const canSend = Boolean(peerId && body.trim());
+  const icon = useIconColors();
+  const { top } = useSafeAreaInsets();
 
   useEffect(() => {
     if (initialPeerId) {
@@ -35,19 +42,16 @@ export function ComposeScreen({ navigation, route }: Props) {
     if (!peerId && peers[0]) setPeerId(peers[0].id);
   }, [peers, peerId, initialPeerId]);
 
-  const canSend = Boolean(peerId && body.trim());
-  const icon = useIconColors();
-
   return (
-    <ScreenContainer>
-      <FloatingBackButton />
+    <ScreenContainer style={{ paddingTop: top }}>
+      <BackButton className="z-10" />
 
-      <View className="mb-4 flex-row items-center gap-2">
+      <View className="mb-4 flex-row justify-center items-center gap-2 mt-2">
         <MessageSquare color={icon.foreground} size={24} />
         <Text variant="h3">Send mesh message</Text>
       </View>
 
-      <Card className="mb-4 gap-0 py-4">
+      <Card className="mb-4 gap-0 py-4 mt-2">
         <CardHeader>
           <View className="flex-row items-center gap-2">
             <Users color={icon.foreground} size={18} />
@@ -106,9 +110,13 @@ export function ComposeScreen({ navigation, route }: Props) {
         className="w-full"
         onPress={() => {
           console.log(
-            `[mesher:send] Compose send tapped peerId=${peerId} bodyLen=${body.trim().length}`,
+            `[mesher:send] Compose send tapped peerId=${peerId} bodyLen=${
+              body.trim().length
+            }`
           );
-          void sendMessage(peerId, body).then(() => navigation.goBack());
+          void sendMessage(peerId, body, l("CONTACTS.UNKNOWN_PEER")).then(() =>
+            navigation.goBack()
+          );
         }}
       >
         <Send color={icon.onPrimary} size={18} />

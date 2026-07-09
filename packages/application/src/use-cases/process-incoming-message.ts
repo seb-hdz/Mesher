@@ -88,6 +88,13 @@ export function createIncomingHandler(deps: AppDeps, identity: LocalIdentity) {
           previewTitle,
           plaintext.slice(0, 120)
         );
+        await deps.persistence.saveInbound({
+          messageId: packet.messageId,
+          body: plaintext,
+          senderPeerId: senderPeer?.id ?? null,
+          senderDisplayName: trimmedName ?? "",
+          receivedAtMs: now,
+        });
         console.log(
           `[mesher:rx] delivered messageId=${packet.messageId} plaintextLen=${plaintext.length}`
         );

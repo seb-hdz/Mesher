@@ -14,6 +14,7 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Pair: undefined;
   Compose: { peerId?: string } | undefined;
+  Chat: { peerId: string };
 };
 
 export type HomeScreenProps = CompositeScreenProps<
@@ -23,5 +24,10 @@ export type HomeScreenProps = CompositeScreenProps<
 
 export type ContactsTabScreenProps = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, "Contacts">,
+  NativeStackScreenProps<RootStackParamList, "Main">
+>;
+
+export type MessagesTabScreenProps = CompositeScreenProps<
+  BottomTabScreenProps<MainTabParamList, "Messages">,
   NativeStackScreenProps<RootStackParamList, "Main">
 >;

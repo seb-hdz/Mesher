@@ -1,49 +1,72 @@
 import type { PairQrPayloadV1 } from "@mesher/application";
-import type { OutboundRecord, PeerRecord } from "@mesher/domain";
+import type { DeliveredIncomingMessage } from "@mesher/application";
+import type { PeerRecord } from "@mesher/domain";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { Platform } from "react-native";
 import { getMeshRuntime, initMeshRuntime, type MeshRuntime } from "../mesh/meshRuntime";
+import {
+  buildConversationPreviews,
+  CHAT_PAGE_SIZE,
+  mergeMessagesForPeer,
+  trimToNewestWindow,
+  type ChatPeerState,
+  type ConversationPreviewUi,
+} from "../messages/buildConversation";
 import { startMeshBackgroundRelay, stopMeshBackgroundRelay } from "../native/meshBackgroundRelay";
-
-export type OutboundRowUi = {
-  messageId: string;
-  status: OutboundRecord["status"];
-  createdAtMs: number;
-  toDisplayName: string;
-  toPeerId: string | null;
-};
-
-export type InboxRowUi = {
-  messageId: string;
-  body: string;
-  senderDisplayName: string;
-  senderPeerId: string | null;
-  receivedAtMs: number;
-};
-
-function boxKeyEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
-}
-
-async function buildOutboundRows(rt: MeshRuntime, peers: PeerRecord[]): Promise<OutboundRowUi[]> {
-  const rows = await rt.listOutboundRecent(20);
-  return rows.map((r) => {
-    const peer = peers.find((p) => boxKeyEqual(p.boxPublicKey, r.packet.recipientBoxPublicKey));
-    return {
-      messageId: r.messageId,
-      status: r.status,
-      createdAtMs: r.createdAtMs,
-      toDisplayName: peer?.displayName ?? "",
-      toPeerId: peer?.id ?? null,
-    };
-  });
-}
 
 const BG_RELAY_SECURE_KEY = "mesher_bg_relay_v1";
 const DISPLAY_NAME_SECURE_KEY = "mesher_display_name_v1";
+
+async function latestBodyForPeer(rt: MeshRuntime, peerId: string): Promise<string> {
+  const [inb, out] = await Promise.all([
+    rt.getLatestInboundByPeer(peerId),
+    rt.getLatestOutboundByPeer(peerId),
+  ]);
+  if (!inb && !out) return "";
+  if (!inb) return out!.plaintextUtf8;
+  if (!out) return inb.body;
+  return inb.receivedAtMs >= out.createdAtMs ? inb.body : out.plaintextUtf8;
+}
+
+async function loadPreviewsFromRuntime(
+  rt: MeshRuntime,
+  peers: PeerRecord[],
+  unknownLabel: string
+): Promise<ConversationPreviewUi[]> {
+  const activity = await rt.listConversationPeerActivity();
+  const latestBodies = new Map<string, string>();
+  await Promise.all(
+    activity.map(async (a) => {
+      latestBodies.set(a.peerId, await latestBodyForPeer(rt, a.peerId));
+    })
+  );
+  return buildConversationPreviews(peers, activity, latestBodies, unknownLabel);
+}
+
+async function loadChatMessagesForPeer(
+  rt: MeshRuntime,
+  peerId: string,
+  beforeMs?: number
+): Promise<{ messages: ChatPeerState["messages"]; hasMoreOlder: boolean }> {
+  const opts = { limit: CHAT_PAGE_SIZE, beforeMs };
+  const [inbound, outbound] = await Promise.all([
+    rt.listInboundByPeer(peerId, opts),
+    rt.listOutboundByPeer(peerId, opts),
+  ]);
+  const merged = mergeMessagesForPeer(inbound, outbound);
+  if (beforeMs != null) {
+    const hasMoreOlder =
+      inbound.length === CHAT_PAGE_SIZE || outbound.length === CHAT_PAGE_SIZE;
+    return { messages: merged, hasMoreOlder };
+  }
+  const { messages, trimmed } = trimToNewestWindow(merged, CHAT_PAGE_SIZE);
+  const hasMoreOlder =
+    inbound.length === CHAT_PAGE_SIZE ||
+    outbound.length === CHAT_PAGE_SIZE ||
+    trimmed;
+  return { messages, hasMoreOlder };
+}
 
 type MeshUiState = {
   ready: boolean;
@@ -51,8 +74,8 @@ type MeshUiState = {
   displayNameLoaded: boolean;
   backgroundRelayEnabled: boolean;
   peers: PeerRecord[];
-  inbox: InboxRowUi[];
-  outbound: OutboundRowUi[];
+  conversations: ConversationPreviewUi[];
+  chatByPeer: Record<string, ChatPeerState>;
   neighborCount: number;
   lastGossipSent: number | null;
   error: string | undefined;
@@ -60,9 +83,13 @@ type MeshUiState = {
   saveDisplayName: (name: string) => Promise<void>;
   setBackgroundRelayEnabled: (enabled: boolean) => Promise<void>;
   refreshPeers: () => Promise<void>;
+  refreshConversations: (unknownLabel: string) => Promise<void>;
+  loadChatPage: (peerId: string) => Promise<void>;
+  loadOlderChatMessages: (peerId: string) => Promise<void>;
+  onMessageDelivered: (message: DeliveredIncomingMessage, unknownLabel?: string) => Promise<void>;
   runGossip: () => Promise<void>;
   pairFromScan: (qrJson: string) => Promise<void>;
-  sendMessage: (peerId: string, body: string) => Promise<void>;
+  sendMessage: (peerId: string, body: string, unknownLabel: string) => Promise<void>;
   getPairingPayload: (displayName: string) => PairQrPayloadV1;
 };
 
@@ -72,8 +99,8 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
   displayNameLoaded: false,
   backgroundRelayEnabled: false,
   peers: [],
-  inbox: [],
-  outbound: [],
+  conversations: [],
+  chatByPeer: {},
   neighborCount: 0,
   lastGossipSent: null,
   error: undefined,
@@ -95,18 +122,7 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
         /* ignore */
       }
       await initMeshRuntime((message) => {
-        set((s) => ({
-          inbox: [
-            {
-              messageId: message.messageId,
-              body: message.plaintext,
-              senderDisplayName: message.senderDisplayName,
-              senderPeerId: message.senderPeerId,
-              receivedAtMs: Date.now(),
-            },
-            ...s.inbox,
-          ],
-        }));
+        void get().onMessageDelivered(message);
       });
       const rt = getMeshRuntime();
       if (bgRelay && Platform.OS === "android") {
@@ -120,9 +136,8 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
       }
       const peers = await rt.refreshPeers();
       const neighborCount = (await rt.transport.getNeighbors()).length;
-      const outbound = await buildOutboundRows(rt, peers);
       console.log(
-        `[mesher:ui] init done peerCount=${peers.length} neighborCount=${neighborCount} outboundRows=${outbound.length} bgRelay=${bgRelay}`,
+        `[mesher:ui] init done peerCount=${peers.length} neighborCount=${neighborCount} bgRelay=${bgRelay}`,
       );
       set({
         ready: true,
@@ -130,7 +145,6 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
         displayNameLoaded: true,
         backgroundRelayEnabled: bgRelay,
         peers,
-        outbound,
         neighborCount,
         lastGossipSent: null,
         error: undefined,
@@ -177,14 +191,117 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
       const rt = getMeshRuntime();
       const peers = await rt.refreshPeers();
       const neighborCount = (await rt.transport.getNeighbors()).length;
-      const outbound = await buildOutboundRows(rt, peers);
       console.log(
-        `[mesher:peers] refreshPeers done peerCount=${peers.length} neighborCount=${neighborCount} outboundRows=${outbound.length}`,
+        `[mesher:peers] refreshPeers done peerCount=${peers.length} neighborCount=${neighborCount}`,
       );
-      set({ peers, neighborCount, outbound });
+      set({ peers, neighborCount });
     } catch (e) {
       console.error("[mesher:peers] refreshPeers error", e);
       set({ error: e instanceof Error ? e.message : String(e) });
+    }
+  },
+
+  refreshConversations: async (unknownLabel: string) => {
+    try {
+      const rt = getMeshRuntime();
+      const conversations = await loadPreviewsFromRuntime(rt, get().peers, unknownLabel);
+      set({ conversations });
+    } catch (e) {
+      console.error("[mesher:chat] refreshConversations error", e);
+      set({ error: e instanceof Error ? e.message : String(e) });
+    }
+  },
+
+  loadChatPage: async (peerId: string) => {
+    try {
+      const rt = getMeshRuntime();
+      const { messages, hasMoreOlder } = await loadChatMessagesForPeer(rt, peerId);
+      set((s) => ({
+        chatByPeer: {
+          ...s.chatByPeer,
+          [peerId]: { messages, hasMoreOlder, loadingOlder: false },
+        },
+      }));
+    } catch (e) {
+      console.error("[mesher:chat] loadChatPage error", e);
+      set({ error: e instanceof Error ? e.message : String(e) });
+    }
+  },
+
+  loadOlderChatMessages: async (peerId: string) => {
+    const current = get().chatByPeer[peerId];
+    if (!current?.hasMoreOlder || current.loadingOlder) return;
+    const oldest = current.messages[0]?.atMs;
+    if (oldest == null) return;
+
+    set((s) => ({
+      chatByPeer: {
+        ...s.chatByPeer,
+        [peerId]: { ...current, loadingOlder: true },
+      },
+    }));
+
+    try {
+      const rt = getMeshRuntime();
+      const { messages: older, hasMoreOlder } = await loadChatMessagesForPeer(
+        rt,
+        peerId,
+        oldest
+      );
+      const existingIds = new Set(get().chatByPeer[peerId]?.messages.map((m) => m.messageId));
+      const toPrepend = older.filter((m) => !existingIds.has(m.messageId));
+      set((s) => {
+        const prev = s.chatByPeer[peerId];
+        if (!prev) return s;
+        return {
+          chatByPeer: {
+            ...s.chatByPeer,
+            [peerId]: {
+              messages: [...toPrepend, ...prev.messages],
+              hasMoreOlder,
+              loadingOlder: false,
+            },
+          },
+        };
+      });
+    } catch (e) {
+      console.error("[mesher:chat] loadOlderChatMessages error", e);
+      set((s) => ({
+        chatByPeer: {
+          ...s.chatByPeer,
+          [peerId]: { ...s.chatByPeer[peerId]!, loadingOlder: false },
+        },
+        error: e instanceof Error ? e.message : String(e),
+      }));
+    }
+  },
+
+  onMessageDelivered: async (message: DeliveredIncomingMessage, unknownLabel?: string) => {
+    const peerId = message.senderPeerId;
+    if (peerId) {
+      const chatMsg = {
+        messageId: message.messageId,
+        direction: "in" as const,
+        body: message.plaintext,
+        atMs: Date.now(),
+      };
+      set((s) => {
+        const prev = s.chatByPeer[peerId];
+        const nextChat = prev
+          ? {
+              ...prev,
+              messages: prev.messages.some((m) => m.messageId === message.messageId)
+                ? prev.messages
+                : [...prev.messages, chatMsg],
+            }
+          : undefined;
+        return {
+          chatByPeer: nextChat ? { ...s.chatByPeer, [peerId]: nextChat } : s.chatByPeer,
+        };
+      });
+    }
+    if (unknownLabel) {
+      await get().refreshConversations(unknownLabel);
     }
   },
 
@@ -193,10 +310,9 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
       console.log("[mesher:ui] runGossip (manual) invoke");
       const rt = getMeshRuntime();
       const sent = await rt.runGossip();
-      const outbound = await buildOutboundRows(rt, get().peers);
       const neighborCount = (await rt.transport.getNeighbors()).length;
       console.log(`[mesher:ui] runGossip done lastGossipSent=${sent} neighborCount=${neighborCount}`);
-      set({ lastGossipSent: sent, outbound, neighborCount, error: undefined });
+      set({ lastGossipSent: sent, neighborCount, error: undefined });
     } catch (e) {
       console.error("[mesher:ui] runGossip error", e);
       set({ error: e instanceof Error ? e.message : String(e) });
@@ -219,7 +335,7 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
     }
   },
 
-  sendMessage: async (peerId: string, body: string) => {
+  sendMessage: async (peerId: string, body: string, unknownLabel: string) => {
     const peer = get().peers.find((p) => p.id === peerId);
     if (!peer) {
       console.warn(`[mesher:send] sendMessage aborted peer not found peerId=${peerId}`);
@@ -232,11 +348,10 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
       );
       const rt = getMeshRuntime();
       const sent = await rt.sendToPeer(peer, body);
-      const outbound = await buildOutboundRows(rt, get().peers);
-      console.log(
-        `[mesher:send] sendMessage done gossipSentCount=${sent} outboundRows=${outbound.length}`,
-      );
-      set({ lastGossipSent: sent, outbound, error: undefined });
+      await get().loadChatPage(peerId);
+      await get().refreshConversations(unknownLabel);
+      console.log(`[mesher:send] sendMessage done gossipSentCount=${sent}`);
+      set({ lastGossipSent: sent, error: undefined });
     } catch (e) {
       console.error("[mesher:send] sendMessage error", e);
       set({ error: e instanceof Error ? e.message : String(e) });

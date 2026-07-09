@@ -4,6 +4,7 @@ import { useColorScheme } from "react-native";
 import { screenBackgroundForScheme } from "@/lib/theme";
 import { MainTabNavigator } from "./MainTabNavigator";
 import { PairScreen } from "../screens/PairScreen";
+import { ChatScreen } from "../screens/ChatScreen";
 import { ComposeScreen } from "../screens/ComposeScreen";
 import type { RootStackParamList } from "./types";
 
@@ -29,6 +30,11 @@ export function RootNavigator() {
           name="Pair"
           component={PairScreen}
           options={{ title: "Pair", headerShown: false }}
+        />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{ title: "Chat", headerShown: false }}
         />
         <Stack.Screen
           name="Compose"

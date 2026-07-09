@@ -1,27 +1,32 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Modal, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import {
+  cacheDirectory,
+  deleteAsync,
+  writeAsStringAsync,
+} from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { Camera, QrCode, ScanLine, X } from "lucide-react-native";
 import QRCode from "react-native-qrcode-svg";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useL } from "../../languages/language.store";
 import type { RootStackParamList } from "../navigation/types";
 import { useMeshStore } from "../state/meshStore";
-import { FloatingBackButton } from "../ui/FloatingBackButton";
+import { BackButton } from "../ui/FloatingBackButton";
 import { useIconColors } from "../ui/iconColors";
 import { ScreenContainer } from "../ui/ScreenContainer";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Pair">;
+
+type QrSvgHandle = {
+  toDataURL: (callback: (dataUrl: string) => void) => void;
+};
 
 export function PairScreen({ navigation }: Props) {
   const l = useL();
@@ -35,6 +40,8 @@ export function PairScreen({ navigation }: Props) {
   const [handled, setHandled] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const icon = useIconColors();
+  const { top } = useSafeAreaInsets();
+  const qrRef = useRef<QrSvgHandle | null>(null);
 
   const qrValue = useMemo(() => {
     if (!ready) return "";
@@ -70,39 +77,80 @@ export function PairScreen({ navigation }: Props) {
     [handled, navigation, pairFromScan, stopScanning]
   );
 
+  const handleShareQR = useCallback(() => {
+    if (!qrValue || !qrRef.current) return;
+
+    qrRef.current.toDataURL((dataUrl) => {
+      void (async () => {
+        const base = cacheDirectory;
+        if (!base) return;
+
+        const uri = `${base}mesher-pair-qr.png`;
+        const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+
+        try {
+          if (!(await Sharing.isAvailableAsync())) return;
+
+          await writeAsStringAsync(uri, base64, { encoding: "base64" });
+          await Sharing.shareAsync(uri, {
+            mimeType: "image/png",
+            UTI: "public.png",
+            dialogTitle: l("PAIR.SHARE_QR"),
+          });
+        } catch (err) {
+          console.warn("[mesher:pair] share QR failed", err);
+        } finally {
+          await deleteAsync(uri, { idempotent: true }).catch(() => {});
+        }
+      })();
+    });
+  }, [l, qrValue]);
+
   return (
-    <ScreenContainer>
-      <FloatingBackButton />
+    <ScreenContainer style={{ paddingTop: top }}>
+      <BackButton className="z-10" />
 
       <ScrollView
-        contentContainerClassName="items-center pb-6"
+        contentContainerClassName="items-center pb-6 mt-2"
         showsVerticalScrollIndicator={false}
       >
         <Text variant="h3" className="mb-2 self-stretch text-center">
-          Pair with QR
+          {l("CONTACTS.PAIR_WITH_QR")}
         </Text>
-        <Text variant="muted" className="mb-6 self-stretch text-center">
-          Show your code so a friend can add you, or scan theirs.
+        <Text variant="muted" className="mb-4 self-stretch mt-4">
+          {l("PAIR.SUBTITLE")}
         </Text>
 
         <Card className="mb-4 w-full max-w-sm gap-0 py-6">
           <CardHeader>
-            <View className="flex-row items-center justify-center gap-2">
+            <View className="flex-row items-center justify-center gap-2 -ml-4">
               <QrCode color={icon.foreground} size={18} />
-              <CardTitle className="text-center text-base">Your code</CardTitle>
+              <CardTitle className="text-center text-base">
+                {l("PAIR.YOUR_CODE")}
+              </CardTitle>
             </View>
-            <CardDescription className="text-center text-xs">
-              Share this QR
-            </CardDescription>
           </CardHeader>
           <CardContent className="items-center">
             <View className="bg-card rounded-lg p-4">
               {qrValue ? (
-                <QRCode value={qrValue} size={200} />
+                <QRCode
+                  value={qrValue}
+                  size={200}
+                  getRef={(c) => {
+                    qrRef.current = c as QrSvgHandle | null;
+                  }}
+                />
               ) : (
-                <Text variant="muted">Loading QR…</Text>
+                <Text variant="muted">{l("PAIR.LOADING_QR")}</Text>
               )}
             </View>
+            <Button
+              variant="outline"
+              disabled={!qrValue}
+              onPress={handleShareQR}
+            >
+              <Text>{l("PAIR.SHARE_QR")}</Text>
+            </Button>
             {displayName ? (
               <Text variant="muted" className="mt-4 text-center text-sm">
                 {l("PAIR.ADDED_AS_NAME").replace("{name}", displayName)}
@@ -127,7 +175,7 @@ export function PairScreen({ navigation }: Props) {
             }}
           >
             <Camera color={icon.onPrimary} size={18} />
-            <Text>Allow camera</Text>
+            <Text>{l("PAIR.ALLOW_CAMERA")}</Text>
           </Button>
         ) : (
           <View className="w-full max-w-sm gap-3">
@@ -150,7 +198,9 @@ export function PairScreen({ navigation }: Props) {
               ) : (
                 <ScanLine color={icon.onPrimary} size={18} />
               )}
-              <Text>{scanning ? "Cancel" : "Scan peer QR"}</Text>
+              <Text>
+                {scanning ? l("COMMON.CANCEL") : l("PAIR.SCAN_PEER_QR")}
+              </Text>
             </Button>
           </View>
         )}
@@ -165,12 +215,19 @@ export function PairScreen({ navigation }: Props) {
           <CameraView
             style={styles.camera}
             facing="back"
-            {...(Platform.OS === "android" ? { ratio: "16:9" as const } : {})}
+            {...(Platform.OS === "android"
+              ? { ratio: "16:9" as const }
+              : { videoStabilizationMode: "cinematic" as const })}
             barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
             onBarcodeScanned={onBarcode}
             onMountError={({ message }) => setCameraError(message)}
           />
-          <FloatingBackButton onPress={stopScanning} />
+          <BackButton
+            invert
+            onPress={stopScanning}
+            className="absolute left-4"
+            style={{ top }}
+          />
           {cameraError ? (
             <View
               style={[

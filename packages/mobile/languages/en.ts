@@ -1,6 +1,7 @@
 export const en = {
   COMMON: {
     BACK: "Back",
+    CANCEL: "Cancel",
   },
   HOME: {
     TITLE: "Mesher",
@@ -39,9 +40,9 @@ export const en = {
     },
   },
   CONTACTS: {
-    TITLE: "MY CONTACTS",
+    TITLE: "My contacts",
     SEARCH_PLACEHOLDER: "Search contacts...",
-    FAB_PAIR_A11Y: "Pair with QR code",
+    PAIR_WITH_QR: "Pair with QR code",
     EMPTY: "No peers yet — scan a QR.",
     NO_SEARCH_RESULTS: "No contacts match your search.",
     UNKNOWN_PEER: "Unknown",
@@ -57,10 +58,28 @@ export const en = {
   },
   WELCOME_NAME: {
     TITLE: "Welcome to Mesher",
-    SUBTITLE: "What should we call you? This name will appear on messages you send.",
+    SUBTITLE:
+      "What should we call you? This name will appear on messages you send.",
     SAVE: "Save",
   },
   PAIR: {
+    SUBTITLE: "Show your code so a friend can add you, or scan theirs.",
+    YOUR_CODE: "Your code",
+    SHARE_QR: "Share this QR",
+    LOADING_QR: "Loading QR…",
+    ALLOW_CAMERA: "Allow camera",
+    SCAN_PEER_QR: "Scan peer QR",
     ADDED_AS_NAME: 'You will be added as "{name}".',
+  },
+  CONVERSATIONS: {
+    TITLE: "Messages",
+    EMPTY: "No conversations yet.",
+    LAST_MESSAGE_EMPTY: "(No text)",
+  },
+  CHAT: {
+    INPUT_PLACEHOLDER: "Message…",
+    EMPTY: "No messages in this conversation yet.",
+    SEND_A11Y: "Send message",
+    UNKNOWN_BODY: "(Message unavailable)",
   },
 } as const;
