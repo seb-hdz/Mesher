@@ -24,11 +24,12 @@ type Props = NativeStackScreenProps<RootStackParamList, "Compose">;
 
 export function ComposeScreen({ navigation, route }: Props) {
   const initialPeerId = route.params?.peerId;
+  const initialBody = route.params?.body;
   const peers = useMeshStore((s) => s.peers);
   const sendMessage = useMeshStore((s) => s.sendMessage);
   const l = useL();
   const [peerId, setPeerId] = useState(initialPeerId ?? peers[0]?.id ?? "");
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(initialBody ?? "");
 
   const canSend = Boolean(peerId && body.trim());
   const icon = useIconColors();
@@ -41,6 +42,12 @@ export function ComposeScreen({ navigation, route }: Props) {
     }
     if (!peerId && peers[0]) setPeerId(peers[0].id);
   }, [peers, peerId, initialPeerId]);
+
+  useEffect(() => {
+    if (initialBody != null && initialBody !== "") {
+      setBody(initialBody);
+    }
+  }, [initialBody]);
 
   return (
     <ScreenContainer style={{ paddingTop: top }}>

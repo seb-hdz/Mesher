@@ -3,7 +3,7 @@ import type { DeliveredIncomingMessage } from "@mesher/application";
 import type { PeerRecord } from "@mesher/domain";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
-import { Platform } from "react-native";
+import { AppState, type NativeEventSubscription, Platform } from "react-native";
 import { getMeshRuntime, initMeshRuntime, type MeshRuntime } from "../mesh/meshRuntime";
 import {
   buildConversationPreviews,
@@ -14,9 +14,26 @@ import {
   type ConversationPreviewUi,
 } from "../messages/buildConversation";
 import { startMeshBackgroundRelay, stopMeshBackgroundRelay } from "../native/meshBackgroundRelay";
+import {
+  clearPendingSiriActions,
+  clearScheduledSiriJob,
+  getPendingSiriActions,
+  getScheduledSiriJobs,
+  isMesherSiriAvailable,
+  updateSiriContacts,
+} from "../native/mesherSiri";
 
 const BG_RELAY_SECURE_KEY = "mesher_bg_relay_v1";
 const DISPLAY_NAME_SECURE_KEY = "mesher_display_name_v1";
+const SIRI_DRAIN_UNKNOWN_LABEL = "Unknown";
+
+let siriAppStateSub: NativeEventSubscription | null = null;
+let siriDrainInFlight = false;
+
+function syncSiriContactsFromPeers(peers: PeerRecord[]): void {
+  if (!isMesherSiriAvailable()) return;
+  void updateSiriContacts(peers.map((p) => ({ id: p.id, displayName: p.displayName })));
+}
 
 async function latestBodyForPeer(rt: MeshRuntime, peerId: string): Promise<string> {
   const [inb, out] = await Promise.all([
@@ -89,7 +106,9 @@ type MeshUiState = {
   onMessageDelivered: (message: DeliveredIncomingMessage, unknownLabel?: string) => Promise<void>;
   runGossip: () => Promise<void>;
   pairFromScan: (qrJson: string) => Promise<void>;
-  sendMessage: (peerId: string, body: string, unknownLabel: string) => Promise<void>;
+  sendMessage: (peerId: string, body: string, unknownLabel: string) => Promise<boolean>;
+  drainSiriQueues: (unknownLabel?: string) => Promise<void>;
+  processScheduledSiriJob: (jobId: string, unknownLabel?: string) => Promise<void>;
   getPairingPayload: (displayName: string) => PairQrPayloadV1;
 };
 
@@ -149,6 +168,17 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
         lastGossipSent: null,
         error: undefined,
       });
+      syncSiriContactsFromPeers(peers);
+      if (Platform.OS === "ios" && isMesherSiriAvailable()) {
+        if (!siriAppStateSub) {
+          siriAppStateSub = AppState.addEventListener("change", (next) => {
+            if (next === "active" && get().ready) {
+              void get().drainSiriQueues();
+            }
+          });
+        }
+        void get().drainSiriQueues();
+      }
     } catch (e) {
       console.error("[mesher:ui] init failed", e);
       set({ error: e instanceof Error ? e.message : String(e) });
@@ -195,6 +225,7 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
         `[mesher:peers] refreshPeers done peerCount=${peers.length} neighborCount=${neighborCount}`,
       );
       set({ peers, neighborCount });
+      syncSiriContactsFromPeers(peers);
     } catch (e) {
       console.error("[mesher:peers] refreshPeers error", e);
       set({ error: e instanceof Error ? e.message : String(e) });
@@ -340,7 +371,7 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
     if (!peer) {
       console.warn(`[mesher:send] sendMessage aborted peer not found peerId=${peerId}`);
       set({ error: "Peer not found" });
-      return;
+      return false;
     }
     try {
       console.log(
@@ -352,9 +383,75 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
       await get().refreshConversations(unknownLabel);
       console.log(`[mesher:send] sendMessage done gossipSentCount=${sent}`);
       set({ lastGossipSent: sent, error: undefined });
+      return true;
     } catch (e) {
       console.error("[mesher:send] sendMessage error", e);
       set({ error: e instanceof Error ? e.message : String(e) });
+      return false;
+    }
+  },
+
+  drainSiriQueues: async (unknownLabel = SIRI_DRAIN_UNKNOWN_LABEL) => {
+    if (Platform.OS !== "ios" || !isMesherSiriAvailable() || !get().ready) return;
+    if (siriDrainInFlight) return;
+    siriDrainInFlight = true;
+    try {
+      const actions = await getPendingSiriActions();
+      const cleared: string[] = [];
+      for (const action of actions) {
+        const peer = get().peers.find((p) => p.id === action.peerId);
+        if (!peer) {
+          console.warn(
+            `[mesher:siri] pending action skipped peer not found id=${action.id} peerId=${action.peerId}`,
+          );
+          // Drop orphaned actions so the queue cannot grow forever.
+          cleared.push(action.id);
+          continue;
+        }
+        const ok = await get().sendMessage(action.peerId, action.body, unknownLabel);
+        if (ok) {
+          cleared.push(action.id);
+        } else {
+          console.error(`[mesher:siri] pending action send failed id=${action.id}`);
+        }
+      }
+      if (cleared.length > 0) {
+        await clearPendingSiriActions(cleared);
+      }
+
+      const nowMs = Date.now();
+      const jobs = await getScheduledSiriJobs();
+      for (const job of jobs) {
+        if (job.fireAt > nowMs) continue;
+        await get().processScheduledSiriJob(job.id, unknownLabel);
+      }
+    } finally {
+      siriDrainInFlight = false;
+    }
+  },
+
+  processScheduledSiriJob: async (jobId: string, unknownLabel = SIRI_DRAIN_UNKNOWN_LABEL) => {
+    if (Platform.OS !== "ios" || !isMesherSiriAvailable() || !get().ready) return;
+    const jobs = await getScheduledSiriJobs();
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) {
+      console.warn(`[mesher:siri] scheduled job not found jobId=${jobId}`);
+      return;
+    }
+    const peer = get().peers.find((p) => p.id === job.peerId);
+    if (!peer) {
+      console.warn(
+        `[mesher:siri] scheduled job peer missing jobId=${jobId} peerId=${job.peerId}`,
+      );
+      await clearScheduledSiriJob(jobId);
+      return;
+    }
+    const ok = await get().sendMessage(job.peerId, job.body, unknownLabel);
+    if (ok) {
+      await clearScheduledSiriJob(jobId);
+      console.log(`[mesher:siri] scheduled job sent jobId=${jobId}`);
+    } else {
+      console.error(`[mesher:siri] scheduled job send failed jobId=${jobId}`);
     }
   },
 

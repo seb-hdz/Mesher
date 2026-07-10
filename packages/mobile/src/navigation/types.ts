@@ -13,7 +13,7 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Pair: undefined;
-  Compose: { peerId?: string } | undefined;
+  Compose: { peerId?: string; body?: string } | undefined;
   Chat: { peerId: string };
 };
 

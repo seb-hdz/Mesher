@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "scheme": "mesher",
     "plugins": [
       "expo-dev-client",
       [
@@ -31,7 +32,8 @@
       ],
       "./plugins/withMesherStripPushEntitlement",
       "expo-notifications",
-      "./plugins/withMesherBle"
+      "./plugins/withMesherBle",
+      "./plugins/withMesherSiri"
     ],
     "ios": {
       "icon": {
@@ -42,6 +44,7 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Mesher uses Bluetooth to discover nearby devices and relay encrypted messages when you use it with BLE enabled.",
         "NSCameraUsageDescription": "Camera is used to scan pairing QR codes.",
+        "NSSiriUsageDescription": "Mesher uses Siri so you can send mesh messages by voice when you are offline.",
         "UIBackgroundModes": ["bluetooth-central", "bluetooth-peripheral"]
       },
       "bundleIdentifier": "com.sebhdz.mesher"

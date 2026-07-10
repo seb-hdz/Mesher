@@ -1,0 +1,32 @@
+Localizar elicitation prompts de Siri App Intents (bilingüe es/en)
+
+Contexto:
+El intent `SendMesherMessageIntent` usa `$message.needsValueError(...)` para pedir el texto del mensaje cuando el usuario invoca Siri sin decirlo. El string actual está solo en inglés. El intent `ScheduleMesherMessageIntent` tiene el mismo problema con `$message` y `$delayMinutes`. Se quiere que esos prompts sean bilingües (español / inglés) usando `LocalizedStringResource`.
+
+Flujo actual:
+1. @packages/mobile/plugins/mesher-siri-native/ios/SendMesherMessageIntent.swift:24-26 — guard sobre `trimmed`, lanza `$message.needsValueError("What should I say?")`
+2. @packages/mobile/plugins/mesher-siri-native/ios/ScheduleMesherMessageIntent.swift — guard sobre `trimmed` lanza `$message.needsValueError(...)` y guard sobre `delayMinutes` lanza `$delayMinutes.needsValueError(...)`
+
+Problema / Objetivo:
+Actual: los strings de elicitación ("What should I say?", "In how many minutes?") están hardcoded en inglés.
+Deseado: usar `LocalizedStringResource` para que Siri muestre la pregunta en el idioma del dispositivo (español si el sistema está en español, inglés si no).
+
+Criterios de aceptación:
+- Al decir "Siri, envía un mensaje a Ana en Mesher" sin texto, Siri pregunta en español si el sistema está en español.
+- Al decir en inglés sin texto, Siri pregunta en inglés.
+- Mismo comportamiento para el parámetro `delayMinutes` en `ScheduleMesherMessageIntent`.
+- El código compila sin warnings (tsc y Xcode build limpios).
+
+Restricciones:
+- No requiere archivo `.strings` separado; `LocalizedStringResource` con `table: nil` usa `Localizable.strings` si existe, o el string literal como fallback, lo que es suficiente para este ajuste.
+- No cambiar la lógica de enqueue ni el comportamiento del intent.
+- Solo iOS; no afecta Android.
+
+Notas de implementación:
+- El tipo correcto es `LocalizedStringResource("¿Qué le quiero decir?")` para español y la sobrecarga de `needsValueError` acepta `LocalizedStringResource` directamente.
+- Patrón sugerido: declarar las strings como constantes `LocalizedStringResource` al inicio de `perform()` y pasarlas a `needsValueError`.
+- En `ScheduleMesherMessageIntent`, los tres guards (message vacío, delayMinutes <= 0) deben seguir el mismo patrón.
+
+Archivos de referencia:
+@packages/mobile/plugins/mesher-siri-native/ios/SendMesherMessageIntent.swift
+@packages/mobile/plugins/mesher-siri-native/ios/ScheduleMesherMessageIntent.swift
