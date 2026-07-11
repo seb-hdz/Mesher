@@ -21,9 +21,7 @@ export function FrostedBlurSurface({ children, className }: Props) {
     <View className={cn("overflow-hidden bg-transparent", className)}>
       <BlurView
         intensity={
-          Platform.OS === "ios"
-            ? BLUR_INTENSITY.ios
-            : BLUR_INTENSITY.android
+          Platform.OS === "ios" ? BLUR_INTENSITY.ios : BLUR_INTENSITY.android
         }
         tint={blurTint}
         style={StyleSheet.absoluteFill}
@@ -31,7 +29,7 @@ export function FrostedBlurSurface({ children, className }: Props) {
           Platform.OS === "android" ? "dimezisBlurView" : undefined
         }
       />
-      <View className="absolute inset-0 bg-background/25" pointerEvents="none" />
+      <View className="absolute inset-0 bg-background/25" />
       {children}
     </View>
   );

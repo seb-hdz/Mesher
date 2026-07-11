@@ -2,16 +2,26 @@ export const es = {
   COMMON: {
     BACK: "Atrás",
     CANCEL: "Cancelar",
+    GOT_IT: "Entendido",
   },
   HOME: {
     TITLE: "Mesher",
     NEARBY_CAPTION: "Cercanos",
     TAGLINE: "Comunicación en malla cifrada",
-    INITIALIZING: "Inicializando…",
+    INITIALIZING: "Inicializando",
     PAIR_QR: "Emparejar (QR)",
     SEND: "Enviar",
     MESH_A11Y:
       "Red decorativa de la malla. Los nodos verdes coinciden con el número del contador de cercanos.",
+  },
+  NO_BLUETOOTH: {
+    TITLE: "Bluetooth no disponible",
+    SUBTITLE:
+      "No se ha podido acceder al Bluetooth. Asegúrate de que esté activado.",
+  },
+  BLOCKING_ALERT: {
+    DISMISS: "Entendido",
+    A11Y_EXPAND: "Toca para ver más detalles",
   },
   MAIN_TABS: {
     NEARBY: "Cercanos",
@@ -58,8 +68,7 @@ export const es = {
   },
   WELCOME_NAME: {
     TITLE: "Bienvenido a Mesher",
-    SUBTITLE:
-      "¿Cómo te llamas? Este nombre aparecerá en los mensajes que envíes.",
+    SUBTITLE: "¿Cómo deseas llamarte?",
     SAVE: "Guardar",
   },
   PAIR: {
@@ -82,5 +91,24 @@ export const es = {
     EMPTY: "Aún no hay mensajes en esta conversación.",
     SEND_A11Y: "Enviar mensaje",
     UNKNOWN_BODY: "(Mensaje no disponible)",
+  },
+  INCOMING_MESSAGE: {
+    TAP_OPEN_CHAT: "Toca para abrir el chat",
+    TAP_OPEN_MESSAGES: "Toca para abrir mensajes",
+    A11Y_PREFIX: "Nuevo mensaje",
+  },
+  APP_RESET: {
+    TITLE: "Restablecer aplicación",
+    DESCRIPTION:
+      "Borra mensajes, contactos, identidad del dispositivo y preferencias locales. Esta acción no se puede deshacer.",
+    BUTTON: "Restablecer todos los datos",
+    RESETTING: "Restableciendo…",
+    RESETTING_HINT: "La aplicación se reiniciará en un momento.",
+    CONFIRM_TITLE: "¿Restablecer la aplicación?",
+    CONFIRM_MESSAGE:
+      "Se eliminarán todos los mensajes, contactos emparejados, tu nombre y las claves de este dispositivo. Tendrás que configurar la app de nuevo.",
+    CONFIRM_BUTTON: "Restablecer",
+    ERROR_TITLE: "No se pudo restablecer",
+    ERROR_MESSAGE: "Ocurrió un error al borrar los datos. Inténtalo de nuevo.",
   },
 } as const;

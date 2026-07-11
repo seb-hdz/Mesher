@@ -2,16 +2,25 @@ export const en = {
   COMMON: {
     BACK: "Back",
     CANCEL: "Cancel",
+    GOT_IT: "Got it",
   },
   HOME: {
     TITLE: "Mesher",
     NEARBY_CAPTION: "Nearby",
     TAGLINE: "Encrypted mesh communication",
-    INITIALIZING: "Initializing…",
+    INITIALIZING: "Initializing",
     PAIR_QR: "Pair (QR)",
     SEND: "Send",
     MESH_A11Y:
       "Decorative mesh network. Green nodes match the nearby peers count.",
+  },
+  NO_BLUETOOTH: {
+    TITLE: "Bluetooth unavailable",
+    SUBTITLE: "Could not access Bluetooth. Make sure it is turned on.",
+  },
+  BLOCKING_ALERT: {
+    DISMISS: "Got it",
+    A11Y_EXPAND: "Tap to see more details",
   },
   MAIN_TABS: {
     NEARBY: "Nearby",
@@ -58,8 +67,7 @@ export const en = {
   },
   WELCOME_NAME: {
     TITLE: "Welcome to Mesher",
-    SUBTITLE:
-      "What should we call you? This name will appear on messages you send.",
+    SUBTITLE: "What should we call you?",
     SAVE: "Save",
   },
   PAIR: {
@@ -81,5 +89,25 @@ export const en = {
     EMPTY: "No messages in this conversation yet.",
     SEND_A11Y: "Send message",
     UNKNOWN_BODY: "(Message unavailable)",
+  },
+  INCOMING_MESSAGE: {
+    TAP_OPEN_CHAT: "Tap to open chat",
+    TAP_OPEN_MESSAGES: "Tap to open messages",
+    A11Y_PREFIX: "New message",
+  },
+  APP_RESET: {
+    TITLE: "Reset app",
+    DESCRIPTION:
+      "Deletes messages, contacts, device identity, and local preferences. This cannot be undone.",
+    BUTTON: "Reset all data",
+    RESETTING: "Resetting…",
+    RESETTING_HINT: "The app will restart in a moment.",
+    CONFIRM_TITLE: "Reset the app?",
+    CONFIRM_MESSAGE:
+      "All messages, paired contacts, your display name, and this device's keys will be removed. You will need to set up the app again.",
+    CONFIRM_BUTTON: "Reset",
+    ERROR_TITLE: "Could not reset",
+    ERROR_MESSAGE:
+      "Something went wrong while clearing data. Please try again.",
   },
 } as const;

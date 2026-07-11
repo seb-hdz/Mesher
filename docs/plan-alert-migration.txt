@@ -1,0 +1,107 @@
+Migrar alertas legacy a Alert (solo props en call sites)
+
+Contexto:
+La app mobile muestra estados de runtime y contador de cercanos con tres componentes legacy: PersistentModalAlert (modal bloqueante + chip), FloatingTopAlert (banner superior ancho) y NearbyCountBadge (chip con número/caption en Home). Ya existe el componente unificado @packages/mobile/src/components/home/Alert.tsx con API type / icon / content / details y modal vía @packages/mobile/src/components/home/AlertModal.tsx. Hay un prototipo hardcodeado en @packages/mobile/App.tsx:116-131 que muestra el patrón deseado para el badge de cercanos.
+
+Flujo actual:
+1. @packages/mobile/App.tsx — monta MeshRuntimeStatusAlert globalmente y un Alert de prueba (debe eliminarse al terminar).
+2. @packages/mobile/src/components/MeshRuntimeStatusAlert.tsx — orquesta estados del mesh store y renderiza PersistentModalAlert o FloatingTopAlert.
+3. @packages/mobile/src/components/PersistentModalAlert.tsx — bluetooth no disponible: modal inicial + chip superior al colapsar (props: active, variant, title, subtitle, icon).
+4. @packages/mobile/src/components/FloatingTopAlert.tsx — inicializando: banner superior con icono Loader girando (props: variant, title, subtitle?, icon).
+5. @packages/mobile/src/screens/HomeScreen.tsx — NearbyCountBadge comentado en línea 44; antes mostraba neighborCount con caption i18n.
+6. @packages/mobile/src/components/home/NearbyCountBadge.tsx — lógica interna: count con color verde/rojo, o Loader si !ready, o BluetoothOff si bluetoothUnavailable (showCount está en true).
+
+Problema / Objetivo:
+Actual: tres componentes con APIs distintas (variant/title/subtitle vs count/className) y estilos/posiciones inconsistentes.
+Deseado: un solo componente Alert en los call sites, mapeando solo las props existentes de Alert (type, icon?, content, details?). No extender la API de Alert salvo que sea estrictamente necesario para compilar.
+
+Mapeo de props (legacy → Alert):
+
+A) PersistentModalAlert (caso bluetoothUnavailable en MeshRuntimeStatusAlert)
+- Condición: mantener render condicional; omitir prop active (si false, no renderizar Alert).
+- variant "destructive" → type "error"
+- title → content (string, usar l("NO_BLUETOOTH.TITLE"))
+- subtitle → details (string, usar l("NO_BLUETOOTH.SUBTITLE"))
+- icon → icon (BluetoothOff)
+
+Ejemplo objetivo:
+<Alert
+  type="error"
+  icon={BluetoothOff}
+  content={l("NO_BLUETOOTH.TITLE")}
+  details={l("NO_BLUETOOTH.SUBTITLE")}
+/>
+
+B) FloatingTopAlert (caso !ready && displayName !== "" && !bluetoothUnavailable)
+- variant "info" con Loader animado → type "loading"
+- title → content (string, usar l("HOME.INITIALIZING"))
+- icon → icon (Loader)
+- sin details
+
+Ejemplo objetivo:
+<Alert
+  type="loading"
+  icon={Loader}
+  content={l("HOME.INITIALIZING")}
+/>
+
+C) NearbyCountBadge (caso HomeScreen con neighborCount)
+- count + caption → content como JSX.Element (como el prototipo en App.tsx), reutilizando l("HOME.NEARBY_CAPTION")
+- Color del número: count > 0 → text-green-600; count === 0 → text-red-600 (replicar lógica de NearbyCountBadge)
+- type: count > 0 → "info"; count === 0 → "error"
+- Sin icon cuando se muestra el contador
+- Si en el futuro se reactiva la rama !showCount de NearbyCountBadge:
+  - !ready → no mostrar nada
+  - bluetoothUnavailable && ready → type "error", icon BluetoothOff (es duplicado con MeshRuntimeStatusAlert; preferir no duplicar, otro alert ya cubre ese estado)
+
+Ejemplo objetivo (estado contador):
+<Alert
+  type="info"
+  content={
+    <>
+      <Text className={cn("text-3xl font-semibold", neighborCount > 0 ? "text-green-600" : "text-red-600")}>
+        {neighborCount}
+      </Text>
+      <Text className="font-semibold">{l("HOME.NEARBY_CAPTION")}</Text>
+    </>
+  }
+/>
+
+Archivos a tocar (en orden sugerido):
+1. @packages/mobile/src/components/MeshRuntimeStatusAlert.tsx — reemplazar imports y JSX de PersistentModalAlert/FloatingTopAlert por Alert con el mapeo A y B.
+2. @packages/mobile/src/screens/HomeScreen.tsx — quitar import de NearbyCountBadge; renderizar Alert con mapeo C en el header (donde estaba el badge comentado).
+3. @packages/mobile/App.tsx — eliminar el Alert de prueba (líneas 116-131) y imports asociados (Alert, Loader, BluetoothOff, Text, useL si quedan sin uso). Mantener MeshRuntimeStatusAlert si sigue siendo el punto global de estados de runtime.
+4. Limpieza: eliminar imports muertos de los tres componentes legacy en todo packages/mobile. Si ningún archivo los importa, borrar @packages/mobile/src/components/PersistentModalAlert.tsx, @packages/mobile/src/components/FloatingTopAlert.tsx y @packages/mobile/src/components/home/NearbyCountBadge.tsx.
+
+Criterios de aceptación:
+- MeshRuntimeStatusAlert sigue mostrando error de Bluetooth e inicialización con Alert, sin PersistentModalAlert ni FloatingTopAlert.
+- HomeScreen muestra el contador de cercanos con Alert (descomentado/reemplazado), sin NearbyCountBadge.
+- App.tsx no contiene el Alert de prototipo ni imports huérfanos.
+- Grep en packages/mobile no encuentra imports de PersistentModalAlert, FloatingTopAlert ni NearbyCountBadge.
+- Claves i18n existentes reutilizadas: NO_BLUETOOTH.TITLE, NO_BLUETOOTH.SUBTITLE, HOME.INITIALIZING, HOME.NEARBY_CAPTION (sin strings nuevos en JSX salvo className).
+- pnpm exec tsc --noEmit (o el check de tipos del paquete mobile) y lint sin errores en archivos tocados.
+
+Restricciones:
+- Solo cambiar props y call sites; no refactorizar Alert.tsx, AlertModal.tsx ni Alert.hooks.tsx salvo bug bloqueante de compilación.
+- No añadir nuevas claves i18n ni cambiar copy.
+- No modificar meshStore ni lógica de negocio; solo capa de presentación.
+- Aceptar diferencias de UX inherentes al nuevo componente: chip superior derecho en lugar de banner ancho; modal de detalles al tap (con details) en lugar del modal bloqueante inicial de PersistentModalAlert.
+
+Notas de implementación:
+- AlertProps.icon está tipado como JSX.Element pero el uso real es componente Lucide (icon={BluetoothOff}); seguir el patrón del prototipo en App.tsx.
+- Alert usa posición absolute top-right; NearbyCountBadge era inline en el header — verificar que no se solape con MeshRuntimeStatusAlert cuando ambos estén visibles (prioridad actual: error BT > initializing > badge).
+- Verificar que pointer-events y onPress en Alert permiten abrir AlertModal cuando hay details (probar tap en alerta de Bluetooth).
+- Prioridad de render en MeshRuntimeStatusAlert: mantener la misma — bluetoothUnavailable excluye el banner de initializing.
+
+Archivos de referencia:
+@packages/mobile/App.tsx
+@packages/mobile/src/components/MeshRuntimeStatusAlert.tsx
+@packages/mobile/src/components/PersistentModalAlert.tsx
+@packages/mobile/src/components/FloatingTopAlert.tsx
+@packages/mobile/src/screens/HomeScreen.tsx
+@packages/mobile/src/components/home/NearbyCountBadge.tsx
+@packages/mobile/src/components/home/Alert.tsx
+@packages/mobile/src/components/home/AlertModal.tsx
+@packages/mobile/src/components/home/Alert.hooks.tsx
+@packages/mobile/languages/es.ts
+@packages/mobile/languages/en.ts

@@ -35,6 +35,10 @@ function deserialize(s: Stored): DeviceIdentity {
   };
 }
 
+export async function clearStoredIdentity(): Promise<void> {
+  await SecureStore.deleteItemAsync(KEY);
+}
+
 export async function loadOrCreateIdentity(crypto: CryptoPort): Promise<DeviceIdentity> {
   const raw = await SecureStore.getItemAsync(KEY);
   if (raw) {

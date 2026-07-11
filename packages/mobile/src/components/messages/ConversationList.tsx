@@ -74,6 +74,7 @@ export function ConversationList() {
   const conversations = useMeshStore((s) => s.conversations);
   const refreshConversations = useMeshStore((s) => s.refreshConversations);
   const ready = useMeshStore((s) => s.ready);
+  const bluetoothUnavailable = useMeshStore((s) => s.bluetoothUnavailable);
 
   const unknownLabel = l("CONTACTS.UNKNOWN_PEER");
 
@@ -92,7 +93,11 @@ export function ConversationList() {
   );
 
   return (
-    <View className="flex-1">
+    <View
+      className="flex-1"
+      style={bluetoothUnavailable ? { opacity: 0.4 } : undefined}
+      pointerEvents={bluetoothUnavailable ? "none" : "auto"}
+    >
       <View className="mb-3 flex-row justify-center items-center gap-2.5 pt-1 -ml-2">
         <MessageSquare color={icon.foreground} size={24} />
         <Text className="text-2xl font-extrabold tracking-tight text-foreground">

@@ -23,6 +23,7 @@ import { ContactRow } from "./ContactRow";
 export function Contacts(props: ContactsProps) {
   const { isPeerConnected } = props;
   const peers = useMeshStore((s) => s.peers);
+  const bluetoothUnavailable = useMeshStore((s) => s.bluetoothUnavailable);
   const icon = useIconColors();
   const l = useL();
   const insets = useSafeAreaInsets();
@@ -51,76 +52,82 @@ export function Contacts(props: ContactsProps) {
         className="relative flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View className="mb-3 flex-row items-center justify-center gap-2.5 pt-1">
-          <Users color={icon.foreground} size={24} />
-          <Text className="text-2xl font-extrabold tracking-tight text-foreground">
-            {l("CONTACTS.TITLE")}
-          </Text>
-        </View>
-
-        {peers.length === 0 ? (
-          <View className="flex-1 items-center justify-center">
-            <Text variant="muted" className="py-2 italic">
-              {l("CONTACTS.EMPTY")}
-            </Text>
-          </View>
-        ) : filteredPeers.length === 0 ? (
-          <View className="flex-1 items-center justify-center">
-            <Text variant="muted" className="py-2">
-              {l("CONTACTS.NO_SEARCH_RESULTS")}
-            </Text>
-          </View>
-        ) : (
-          <SectionList
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            className="flex-1"
-            stickySectionHeadersEnabled={false}
-            keyboardShouldPersistTaps="handled"
-            renderSectionHeader={({ section: { title } }) => (
-              <View className="bg-background pb-1 pt-2">
-                <Text className="text-sm font-bold tracking-wide text-foreground">
-                  {title}
-                </Text>
-                <Separator className="mt-2" />
-              </View>
-            )}
-            renderItem={({ item }) => (
-              <ContactRow
-                peer={item}
-                showConnectedBadge={isPeerConnected?.(item) ?? false}
-                onChevronPress={() =>
-                  navigation.navigate("Chat", { peerId: item.id })
-                }
-                chevronColor={icon.foreground}
-                unknownLabel={unknownLabel}
-                connectedBadgeA11y={l("CONTACTS.A11Y_CONNECTED_BADGE")}
-              />
-            )}
-            SectionSeparatorComponent={() => null}
-          />
-        )}
-
         <View
-          className={cn(
-            "flex flex-row w-full gap-2.5 justify-between",
-            keyboardOpen ? "pb-3" : ""
-          )}
-          pointerEvents="box-none"
-          style={{
-            marginBottom: !keyboardOpen ? bottomControlsHeight : 0,
-          }}
+          className="flex-1"
+          style={bluetoothUnavailable ? { opacity: 0.4 } : undefined}
+          pointerEvents={bluetoothUnavailable ? "none" : "auto"}
         >
-          <ContactSearchBar value={query} onChangeText={setQuery} />
-          <Button
-            variant="outline"
-            size="icon"
-            accessibilityLabel={l("CONTACTS.PAIR_WITH_QR")}
-            onPress={() => navigation.navigate("Pair")}
-            className="h-14 w-14 rounded-full border-border shadow-sm shadow-black/10"
+          <View className="mb-3 flex-row items-center justify-center gap-2.5 pt-1">
+            <Users color={icon.foreground} size={24} />
+            <Text className="text-2xl font-extrabold tracking-tight text-foreground">
+              {l("CONTACTS.TITLE")}
+            </Text>
+          </View>
+
+          {peers.length === 0 ? (
+            <View className="flex-1 items-center justify-center">
+              <Text variant="muted" className="py-2 italic">
+                {l("CONTACTS.EMPTY")}
+              </Text>
+            </View>
+          ) : filteredPeers.length === 0 ? (
+            <View className="flex-1 items-center justify-center">
+              <Text variant="muted" className="py-2">
+                {l("CONTACTS.NO_SEARCH_RESULTS")}
+              </Text>
+            </View>
+          ) : (
+            <SectionList
+              sections={sections}
+              keyExtractor={(item) => item.id}
+              className="flex-1"
+              stickySectionHeadersEnabled={false}
+              keyboardShouldPersistTaps="handled"
+              renderSectionHeader={({ section: { title } }) => (
+                <View className="bg-background pb-1 pt-2">
+                  <Text className="text-sm font-bold tracking-wide text-foreground">
+                    {title}
+                  </Text>
+                  <Separator className="mt-2" />
+                </View>
+              )}
+              renderItem={({ item }) => (
+                <ContactRow
+                  peer={item}
+                  showConnectedBadge={isPeerConnected?.(item) ?? false}
+                  onChevronPress={() =>
+                    navigation.navigate("Chat", { peerId: item.id })
+                  }
+                  chevronColor={icon.foreground}
+                  unknownLabel={unknownLabel}
+                  connectedBadgeA11y={l("CONTACTS.A11Y_CONNECTED_BADGE")}
+                />
+              )}
+              SectionSeparatorComponent={() => null}
+            />
+          )}
+
+          <View
+            className={cn(
+              "flex flex-row w-full gap-2.5 justify-between",
+              keyboardOpen ? "pb-3" : ""
+            )}
+            pointerEvents="box-none"
+            style={{
+              marginBottom: !keyboardOpen ? bottomControlsHeight : 0,
+            }}
           >
-            <QrCode color={icon.foreground} size={26} strokeWidth={2} />
-          </Button>
+            <ContactSearchBar value={query} onChangeText={setQuery} />
+            <Button
+              variant="outline"
+              size="icon"
+              accessibilityLabel={l("CONTACTS.PAIR_WITH_QR")}
+              onPress={() => navigation.navigate("Pair")}
+              className="h-14 w-14 rounded-full border-border shadow-sm shadow-black/10"
+            >
+              <QrCode color={icon.foreground} size={26} strokeWidth={2} />
+            </Button>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </ScreenContainer>

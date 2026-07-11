@@ -2,10 +2,14 @@ import { useEffect, useRef } from "react";
 import { Animated, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
+import { useL } from "../../languages/language.store";
+import { navigateToIncomingMessage } from "../navigation/navigationRef";
 import { useIncomingMessagePreviewStore } from "../state/incomingMessagePreviewStore";
+
 const AUTO_DISMISS_MS = 5500;
 
 export function IncomingMessageBanner() {
+  const l = useL();
   const banner = useIncomingMessagePreviewStore((s) => s.banner);
   const dismiss = useIncomingMessagePreviewStore((s) => s.dismiss);
   const { top } = useSafeAreaInsets();
@@ -36,6 +40,10 @@ export function IncomingMessageBanner() {
 
   if (!banner) return null;
 
+  const hint = banner.peerId
+    ? l("INCOMING_MESSAGE.TAP_OPEN_CHAT")
+    : l("INCOMING_MESSAGE.TAP_OPEN_MESSAGES");
+
   return (
     <View
       className="absolute left-0 right-0 px-3"
@@ -44,9 +52,12 @@ export function IncomingMessageBanner() {
     >
       <Animated.View style={{ opacity, transform: [{ translateY }] }}>
         <Pressable
-          onPress={dismiss}
-          accessibilityRole="alert"
-          accessibilityLabel={`New message: ${banner.title}. ${banner.body}`}
+          onPress={() => {
+            navigateToIncomingMessage(banner.peerId);
+            dismiss();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={`${l("INCOMING_MESSAGE.A11Y_PREFIX")}: ${banner.title}. ${banner.body}. ${hint}`}
         >
           <View className="rounded-xl border border-border bg-card px-4 py-3 shadow-md shadow-black/20">
             <Text
@@ -62,7 +73,7 @@ export function IncomingMessageBanner() {
               {banner.body}
             </Text>
             <Text variant="muted" className="mt-2 text-xs opacity-50">
-              Tap to dismiss
+              {hint}
             </Text>
           </View>
         </Pressable>

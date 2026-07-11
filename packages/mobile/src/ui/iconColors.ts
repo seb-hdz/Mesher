@@ -14,6 +14,7 @@ export function useIconColors() {
       muted: "hsl(0, 0%, 63.9%)",
       onPrimary: "hsl(0, 0%, 9%)",
       onSecondary: "hsl(0, 0%, 98%)",
+      destructive: "hsl(0, 70.9%, 59.4%)",
     } as const;
   }
 
@@ -22,5 +23,6 @@ export function useIconColors() {
     muted: "hsl(0, 0%, 45.1%)",
     onPrimary: "hsl(0, 0%, 98%)",
     onSecondary: "hsl(0, 0%, 9%)",
+    destructive: "hsl(0, 84.2%, 60.2%)",
   } as const;
 }

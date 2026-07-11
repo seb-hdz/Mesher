@@ -41,6 +41,10 @@ export type PeerRecord = {
 
 export interface PersistencePort {
   saveOutbound(record: OutboundRecord): Promise<void>;
+  /**
+   * Outbound still eligible for gossip: PENDING (never broadcast) and SENT
+   * (broadcast attempted; may need retry until TTL / DELIVERED).
+   */
   listPendingOutbound(): Promise<OutboundRecord[]>;
   /** Newest first; for UI / diagnostics. */
   listOutboundRecent(limit: number): Promise<OutboundRecord[]>;

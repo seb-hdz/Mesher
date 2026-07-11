@@ -4,6 +4,7 @@ import { Settings } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { UserConfig } from "./UserConfig";
 import { NetworkConfig } from "./NetworkConfig";
+import { AppResetConfig } from "./AppResetConfig";
 import { useIconColors } from "@/src/ui/iconColors";
 import Logo from "../Logo";
 
@@ -17,6 +18,7 @@ const ConfigPanel = () => {
       </View>
       <UserConfig />
       <NetworkConfig />
+      <AppResetConfig />
       <Logo withAuthor />
     </View>
   );

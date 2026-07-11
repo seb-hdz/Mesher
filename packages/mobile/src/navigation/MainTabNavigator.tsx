@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { type BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { PlatformPressable } from "@react-navigation/elements";
@@ -12,7 +11,6 @@ import { Contacts } from "../components/contacts/Contacts";
 import { HomeScreen } from "../screens/HomeScreen";
 import { MessageScreen } from "../screens/MessageScreen";
 import { ScreenContainer } from "../ui/ScreenContainer";
-import { useMeshStore } from "../state/meshStore";
 import { useIconColors } from "../ui/iconColors";
 import type { MainTabParamList } from "./types";
 import { withTabEntrance } from "./TabScreenEntrance";
@@ -76,12 +74,7 @@ const SettingsTab = withTabEntrance(SettingsTabScreen);
 
 export function MainTabNavigator() {
   const l = useL();
-  const init = useMeshStore((s) => s.init);
   const icon = useIconColors();
-
-  useEffect(() => {
-    void init();
-  }, [init]);
 
   const activeColor = icon.foreground;
   const inactiveColor = icon.muted;

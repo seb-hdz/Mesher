@@ -34,13 +34,15 @@ import type * as SQLite from "expo-sqlite";
 
 const MAX_HOP = 12;
 const MTU = 180;
+/** Re-broadcast undelivered outbound while peers may be offline / reconnecting. */
+const GOSSIP_INTERVAL_MS = 30_000;
 
 export type MeshRuntime = {
   deps: AppDeps;
   identity: DeviceIdentity;
   db: SQLite.SQLiteDatabase;
   transport: TransportPort;
-  dispose: () => void;
+  dispose: () => Promise<void>;
   refreshPeers: () => Promise<PeerRecord[]>;
   listOutboundRecent: (limit: number) => Promise<OutboundRecord[]>;
   listOutboundByPeer: (peerId: string, opts: MessagePageOpts) => Promise<OutboundRecord[]>;
@@ -61,12 +63,29 @@ export function getMeshRuntime(): MeshRuntime {
   return instance;
 }
 
+export async function disposeMeshRuntime(): Promise<void> {
+  if (!instance) return;
+  const db = instance.db;
+  await instance.dispose();
+  try {
+    await db.closeAsync();
+  } catch {
+    /* ignore */
+  }
+}
+
+export type InitMeshResult = {
+  runtime: MeshRuntime;
+  /** Set when BLE/radio failed to start; local persistence is still available. */
+  transportError?: unknown;
+};
+
 export async function initMeshRuntime(
   onDelivered: (message: DeliveredIncomingMessage) => void
-): Promise<MeshRuntime> {
+): Promise<InitMeshResult> {
   if (instance) {
     console.log("[mesher:init] early-return (already initialized)");
-    return instance;
+    return { runtime: instance };
   }
 
   console.log("[mesher:init] enter");
@@ -120,16 +139,42 @@ export async function initMeshRuntime(
 
   const unsub = transport.subscribeIncoming(wrapped);
   console.log("[mesher:init] step=subscribeIncoming ok; calling transport.start (BLE/native on device)");
-  await transport.start();
-  console.log("[mesher:init] step=transport.start ok");
+  let transportError: unknown;
+  try {
+    await transport.start();
+    console.log("[mesher:init] step=transport.start ok");
+  } catch (e) {
+    transportError = e;
+    console.error("[mesher:init] step=transport.start failed (continuing with local data)", e);
+  }
 
   console.log("[mesher:init] step=purgeExpired begin");
   await purgeExpired(deps);
   console.log("[mesher:init] step=purgeExpired ok");
 
-  const dispose = () => {
+  let gossipTimer: ReturnType<typeof setInterval> | null = null;
+  if (!transportError) {
+    gossipTimer = setInterval(() => {
+      void (async () => {
+        try {
+          const { sent } = await runGossipRound(deps);
+          if (sent > 0) {
+            console.log(`[mesher:gossip] periodic round sent=${sent}`);
+          }
+        } catch (e) {
+          console.warn("[mesher:gossip] periodic round failed", e);
+        }
+      })();
+    }, GOSSIP_INTERVAL_MS);
+  }
+
+  const dispose = async () => {
+    if (gossipTimer != null) {
+      clearInterval(gossipTimer);
+      gossipTimer = null;
+    }
     unsub();
-    void transport.stop();
+    await transport.stop();
     instance = null;
   };
 
@@ -173,5 +218,5 @@ export async function initMeshRuntime(
   };
 
   console.log("[mesher:init] complete (instance assigned)");
-  return instance;
+  return { runtime: instance, transportError };
 }

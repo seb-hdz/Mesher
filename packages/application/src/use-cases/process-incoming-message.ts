@@ -62,6 +62,13 @@ export function createIncomingHandler(deps: AppDeps, identity: LocalIdentity) {
     );
 
     if (isRecipient(packet, identity.boxPublicKey)) {
+      const alreadySeen = await deps.persistence.hasSeenMessage(packet.messageId);
+      if (alreadySeen) {
+        console.log(
+          `[mesher:rx] ignored reason=already_delivered messageId=${packet.messageId}`
+        );
+        return { kind: "ignored" };
+      }
       try {
         const plaintext = await deps.crypto.openUtf8(
           packet.ciphertext,
@@ -84,10 +91,11 @@ export function createIncomingHandler(deps: AppDeps, identity: LocalIdentity) {
         const previewTitle = !!trimmedName?.length
           ? trimmedName
           : UNKNOWN_SENDER_PREVIEW_TITLE;
-        await deps.notifications.showLocalMessagePreview(
-          previewTitle,
-          plaintext.slice(0, 120)
-        );
+        await deps.notifications.showLocalMessagePreview({
+          title: previewTitle,
+          body: plaintext.slice(0, 120),
+          peerId: senderPeer?.id ?? null,
+        });
         await deps.persistence.saveInbound({
           messageId: packet.messageId,
           body: plaintext,

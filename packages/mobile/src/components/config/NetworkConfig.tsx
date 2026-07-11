@@ -9,6 +9,7 @@ import { useIconColors } from "../../ui/iconColors";
 
 export function NetworkConfig() {
   const ready = useMeshStore((s) => s.ready);
+  const bluetoothUnavailable = useMeshStore((s) => s.bluetoothUnavailable);
   const lastGossipSent = useMeshStore((s) => s.lastGossipSent);
   const refreshPeers = useMeshStore((s) => s.refreshPeers);
   const runGossip = useMeshStore((s) => s.runGossip);
@@ -17,6 +18,7 @@ export function NetworkConfig() {
     (s) => s.setBackgroundRelayEnabled
   );
   const icon = useIconColors();
+  const meshActionsDisabled = !ready || bluetoothUnavailable;
 
   return (
     <Card className="mb-4">
@@ -46,7 +48,7 @@ export function NetworkConfig() {
           <Switch
             value={backgroundRelayEnabled}
             onValueChange={(v) => void setBackgroundRelayEnabled(v)}
-            disabled={!ready}
+            disabled={meshActionsDisabled}
           />
         </View>
 
@@ -56,6 +58,7 @@ export function NetworkConfig() {
           <Button
             variant="secondary"
             className="flex-1 min-w-[140px]"
+            disabled={meshActionsDisabled}
             onPress={() => void runGossip()}
           >
             <RadioTower color={icon.onSecondary} size={18} />
@@ -72,6 +75,7 @@ export function NetworkConfig() {
           <Button
             variant="secondary"
             className="flex-1 min-w-[140px]"
+            disabled={meshActionsDisabled}
             onPress={() => void refreshPeers()}
           >
             <RefreshCw color={icon.onSecondary} size={18} />

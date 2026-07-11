@@ -226,6 +226,7 @@ export class PlxBleMeshTransport implements TransportPort {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       bleDebug(`start phase=native.startPeripheral FAILED msg=${msg}`);
+      this.running = false;
       throw e;
     }
 
@@ -294,9 +295,7 @@ export class PlxBleMeshTransport implements TransportPort {
       });
       this.subscriptionsById.set(device.id, sub);
       d.onDisconnected(() => {
-        this.centralById.delete(device.id);
-        this.subscriptionsById.get(device.id)?.remove();
-        this.subscriptionsById.delete(device.id);
+        this.dropCentral(device.id);
       });
       this.centralById.set(device.id, d);
     } catch {
@@ -327,6 +326,12 @@ export class PlxBleMeshTransport implements TransportPort {
     }
   }
 
+  private dropCentral(deviceId: string): void {
+    this.centralById.delete(deviceId);
+    this.subscriptionsById.get(deviceId)?.remove();
+    this.subscriptionsById.delete(deviceId);
+  }
+
   async broadcastChunk(chunk: Uint8Array): Promise<void> {
     if (!this.running) return;
     const b64 = bytesToBase64(new Uint8Array(chunk));
@@ -339,7 +344,10 @@ export class PlxBleMeshTransport implements TransportPort {
       try {
         await d.writeCharacteristicWithoutResponseForService(MESHER_SERVICE, MESHER_CHUNK, b64);
       } catch {
-        /* ignore */
+        // Stale GATT link (peer app killed / backgrounded): drop so scan can reconnect.
+        bleDebug(`broadcastChunk write failed; dropping central id=${d.id}`);
+        this.dropCentral(d.id);
+        void d.cancelConnection().catch(() => {});
       }
     }
   }

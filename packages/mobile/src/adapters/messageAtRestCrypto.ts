@@ -20,6 +20,11 @@ async function getKey(): Promise<Uint8Array> {
   return key;
 }
 
+export async function clearStoredMessageAtRestKey(): Promise<void> {
+  cachedKey = null;
+  await SecureStore.deleteItemAsync(KEY);
+}
+
 /** Encrypt UTF-8 message body for SQLite storage. Returns base64(nonce || secretbox). */
 export async function encryptMessageBody(plaintext: string): Promise<string> {
   if (!plaintext) return "";

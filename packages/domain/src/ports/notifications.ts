@@ -1,3 +1,10 @@
+export type LocalMessagePreview = {
+  title: string;
+  body: string;
+  /** Paired peer id when known; null if sender is not in local contacts. */
+  peerId: string | null;
+};
+
 export interface NotificationPort {
-  showLocalMessagePreview(title: string, body: string): Promise<void>;
+  showLocalMessagePreview(preview: LocalMessagePreview): Promise<void>;
 }

@@ -31,8 +31,10 @@ type InboundRow = {
   received_at: number;
 };
 
+export const MESHER_DB_NAME = "mesher.db";
+
 export function openDb(): Promise<SQLite.SQLiteDatabase> {
-  return SQLite.openDatabaseAsync("mesher.db");
+  return SQLite.openDatabaseAsync(MESHER_DB_NAME);
 }
 
 async function columnExists(
@@ -134,7 +136,9 @@ export function createSqlitePersistence(db: SQLite.SQLiteDatabase): PersistenceP
     },
     async listPendingOutbound() {
       const rows = await db.getAllAsync<OutboundRow>(
-        `SELECT message_id, payload, status, created_at, body_cipher, recipient_peer_id FROM outbound WHERE status = 'PENDING'`
+        `SELECT message_id, payload, status, created_at, body_cipher, recipient_peer_id
+         FROM outbound WHERE status IN ('PENDING', 'SENT')
+         ORDER BY created_at ASC`
       );
       return Promise.all(rows.map(mapOutboundRow));
     },

@@ -20,7 +20,6 @@ export function WelcomeNameSheet() {
   const l = useL();
   const insets = useSafeAreaInsets();
   const icon = useIconColors();
-  const ready = useMeshStore((s) => s.ready);
   const displayName = useMeshStore((s) => s.displayName);
   const displayNameLoaded = useMeshStore((s) => s.displayNameLoaded);
   const saveDisplayName = useMeshStore((s) => s.saveDisplayName);
@@ -28,7 +27,7 @@ export function WelcomeNameSheet() {
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
-  const visible = ready && displayNameLoaded && displayName === "";
+  const visible = displayNameLoaded && displayName === "";
   const canSave = draft.trim().length > 0 && !saving;
 
   useEffect(() => {

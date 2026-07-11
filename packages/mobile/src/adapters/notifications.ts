@@ -1,10 +1,13 @@
-import type { NotificationPort } from "@mesher/domain";
+import type { LocalMessagePreview, NotificationPort } from "@mesher/domain";
 import * as Notifications from "expo-notifications";
 import { AppState, Platform } from "react-native";
 import { useIncomingMessagePreviewStore } from "../state/incomingMessagePreviewStore";
 
 /** Android channel for incoming mesh messages (high importance; separate from BLE relay FGS). */
 export const MESHER_MESSAGE_NOTIFICATION_CHANNEL_ID = "mesher_messages";
+
+/** `content.data.type` for local previews of delivered mesh messages. */
+export const INCOMING_MESSAGE_NOTIFICATION_TYPE = "incoming_message";
 
 let infraReady = false;
 
@@ -52,10 +55,11 @@ export async function setupMessageNotificationInfra(): Promise<void> {
 
 export function createMessageNotifications(): NotificationPort {
   return {
-    async showLocalMessagePreview(title: string, body: string) {
+    async showLocalMessagePreview(preview: LocalMessagePreview) {
+      const { title, body, peerId } = preview;
       const state = AppState.currentState;
       if (state === "active" || Platform.OS === "web") {
-        useIncomingMessagePreviewStore.getState().show(title, body);
+        useIncomingMessagePreviewStore.getState().show(title, body, peerId);
         return;
       }
 
@@ -64,6 +68,10 @@ export function createMessageNotifications(): NotificationPort {
           content: {
             title,
             body,
+            data: {
+              type: INCOMING_MESSAGE_NOTIFICATION_TYPE,
+              ...(peerId ? { peerId } : {}),
+            },
             ...(Platform.OS === "android" && {
               channelId: MESHER_MESSAGE_NOTIFICATION_CHANNEL_ID,
             }),
@@ -72,7 +80,7 @@ export function createMessageNotifications(): NotificationPort {
         });
       } catch (e) {
         console.warn("[mesher:notifications] scheduleNotificationAsync failed", e);
-        useIncomingMessagePreviewStore.getState().show(title, body);
+        useIncomingMessagePreviewStore.getState().show(title, body, peerId);
       }
     },
   };

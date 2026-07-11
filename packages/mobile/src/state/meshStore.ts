@@ -22,6 +22,9 @@ import {
   isMesherSiriAvailable,
   updateSiriContacts,
 } from "../native/mesherSiri";
+import { isBluetoothUnavailableError } from "../utils/isBluetoothUnavailableError";
+import { resetAppState } from "../app/resetAppState";
+import { reloadApp } from "../app/reloadApp";
 
 const BG_RELAY_SECURE_KEY = "mesher_bg_relay_v1";
 const DISPLAY_NAME_SECURE_KEY = "mesher_display_name_v1";
@@ -90,12 +93,14 @@ type MeshUiState = {
   displayName: string;
   displayNameLoaded: boolean;
   backgroundRelayEnabled: boolean;
+  bluetoothUnavailable: boolean;
   peers: PeerRecord[];
   conversations: ConversationPreviewUi[];
   chatByPeer: Record<string, ChatPeerState>;
   neighborCount: number;
   lastGossipSent: number | null;
   error: string | undefined;
+  bootstrap: () => Promise<void>;
   init: () => Promise<void>;
   saveDisplayName: (name: string) => Promise<void>;
   setBackgroundRelayEnabled: (enabled: boolean) => Promise<void>;
@@ -110,6 +115,7 @@ type MeshUiState = {
   drainSiriQueues: (unknownLabel?: string) => Promise<void>;
   processScheduledSiriJob: (jobId: string, unknownLabel?: string) => Promise<void>;
   getPairingPayload: (displayName: string) => PairQrPayloadV1;
+  resetApp: () => Promise<void>;
 };
 
 export const useMeshStore = create<MeshUiState>((set, get) => ({
@@ -117,6 +123,7 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
   displayName: "",
   displayNameLoaded: false,
   backgroundRelayEnabled: false,
+  bluetoothUnavailable: false,
   peers: [],
   conversations: [],
   chatByPeer: {},
@@ -124,27 +131,45 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
   lastGossipSent: null,
   error: undefined,
 
+  bootstrap: async () => {
+    try {
+      let displayName = "";
+      try {
+        const storedName = await SecureStore.getItemAsync(DISPLAY_NAME_SECURE_KEY);
+        if (storedName) displayName = storedName.trim();
+      } catch {
+        /* ignore */
+      }
+      set({ displayName, displayNameLoaded: true });
+      if (displayName) {
+        await get().init();
+      }
+    } catch (e) {
+      console.error("[mesher:ui] bootstrap failed", e);
+      set({ displayNameLoaded: true });
+    }
+  },
+
   init: async () => {
+    if (!get().displayName.trim()) {
+      console.log("[mesher:ui] init skipped — no display name");
+      return;
+    }
     try {
       console.log("[mesher:ui] init start");
       let bgRelay = false;
-      let displayName = "";
       try {
         bgRelay = (await SecureStore.getItemAsync(BG_RELAY_SECURE_KEY)) === "1";
       } catch {
         /* ignore */
       }
-      try {
-        const storedName = await SecureStore.getItemAsync(DISPLAY_NAME_SECURE_KEY);
-        if (storedName) displayName = storedName;
-      } catch {
-        /* ignore */
-      }
-      await initMeshRuntime((message) => {
+      const { transportError } = await initMeshRuntime((message) => {
         void get().onMessageDelivered(message);
       });
+      const bluetoothUnavailable =
+        transportError != null && isBluetoothUnavailableError(transportError);
       const rt = getMeshRuntime();
-      if (bgRelay && Platform.OS === "android") {
+      if (bgRelay && Platform.OS === "android" && !bluetoothUnavailable) {
         try {
           await startMeshBackgroundRelay();
         } catch (e) {
@@ -154,19 +179,27 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
         }
       }
       const peers = await rt.refreshPeers();
-      const neighborCount = (await rt.transport.getNeighbors()).length;
+      const neighborCount = bluetoothUnavailable
+        ? 0
+        : (await rt.transport.getNeighbors()).length;
       console.log(
-        `[mesher:ui] init done peerCount=${peers.length} neighborCount=${neighborCount} bgRelay=${bgRelay}`,
+        `[mesher:ui] init done peerCount=${peers.length} neighborCount=${neighborCount} bgRelay=${bgRelay} bluetoothUnavailable=${bluetoothUnavailable}`,
       );
       set({
         ready: true,
-        displayName,
-        displayNameLoaded: true,
         backgroundRelayEnabled: bgRelay,
+        bluetoothUnavailable,
         peers,
         neighborCount,
         lastGossipSent: null,
-        error: undefined,
+        error:
+          transportError != null && !bluetoothUnavailable
+            ? transportError instanceof Error
+              ? transportError.message
+              : typeof transportError === "string"
+                ? transportError
+                : String(transportError)
+            : undefined,
       });
       syncSiriContactsFromPeers(peers);
       if (Platform.OS === "ios" && isMesherSiriAvailable()) {
@@ -181,7 +214,14 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
       }
     } catch (e) {
       console.error("[mesher:ui] init failed", e);
-      set({ error: e instanceof Error ? e.message : String(e) });
+      set({
+        bluetoothUnavailable: isBluetoothUnavailableError(e),
+        error: isBluetoothUnavailableError(e)
+          ? undefined
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      });
     }
   },
 
@@ -191,6 +231,9 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
     try {
       await SecureStore.setItemAsync(DISPLAY_NAME_SECURE_KEY, trimmed);
       set({ displayName: trimmed, error: undefined });
+      if (!get().ready) {
+        await get().init();
+      }
     } catch (e) {
       set({ error: e instanceof Error ? e.message : String(e) });
     }
@@ -457,4 +500,9 @@ export const useMeshStore = create<MeshUiState>((set, get) => ({
 
   getPairingPayload: (displayName: string) =>
     getMeshRuntime().getPairingPayload(displayName),
+
+  resetApp: async () => {
+    await resetAppState();
+    await reloadApp();
+  },
 }));

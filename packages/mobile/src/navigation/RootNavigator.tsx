@@ -7,6 +7,7 @@ import { PairScreen } from "../screens/PairScreen";
 import { ChatScreen } from "../screens/ChatScreen";
 import { ComposeScreen } from "../screens/ComposeScreen";
 import { mesherNavigationLinking } from "./linking";
+import { navigationRef } from "./navigationRef";
 import type { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -16,7 +17,7 @@ export function RootNavigator() {
   const contentBackground = screenBackgroundForScheme(scheme);
 
   return (
-    <NavigationContainer linking={mesherNavigationLinking}>
+    <NavigationContainer ref={navigationRef} linking={mesherNavigationLinking}>
       <Stack.Navigator
         screenOptions={{
           contentStyle: { backgroundColor: contentBackground },

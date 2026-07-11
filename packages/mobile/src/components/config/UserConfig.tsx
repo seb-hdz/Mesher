@@ -61,6 +61,9 @@ export function UserConfig() {
     <Card className="gap-3 -mt-2">
       <CardHeader>
         <Text className="font-semibold">{l("USER_CONFIG.TITLE")}</Text>
+        <Text variant="muted" className="text-xs opacity-50 -mt-2 pb-1">
+          {l("USER_CONFIG.NAME_HINT")}
+        </Text>
       </CardHeader>
       <CardContent className="gap-3 -mt-2">
         <View className="dark:bg-input/30 border-input bg-background flex h-10 w-full flex-row items-center rounded-md border px-2 shadow-sm shadow-black/5">
@@ -75,9 +78,9 @@ export function UserConfig() {
         </View>
         {showSave ? (
           <Button
-            variant="outline"
+            variant={canSave ? "default" : "outline"}
             size="sm"
-            className="self-start"
+            className="w-full"
             disabled={!canSave}
             onPress={() => void onSave()}
           >
@@ -89,9 +92,6 @@ export function UserConfig() {
             {l("USER_CONFIG.NAME_SAVED")}
           </Text>
         ) : null}
-        <Text variant="muted" className="text-xs opacity-50 -mt-2">
-          {l("USER_CONFIG.NAME_HINT")}
-        </Text>
       </CardContent>
     </Card>
   );
